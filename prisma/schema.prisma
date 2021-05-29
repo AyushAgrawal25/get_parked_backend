@@ -1,0 +1,23 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:@localhost:3306/prisma_db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// signUpStatus to confirm that signUp is properly Completed or not.
+// TODO: change it signUpStatus everywhere in the app.
+// TODO: change accessToken to userToken and create managment for accessToken.
+
+model User {
+  id      Int      @default(autoincrement()) @id
+  email   String   @unique @db.VarChar(255)
+  userToken    String @db.VarChar(255)
+  signUpStatus    Int
+  status    Int
+}
