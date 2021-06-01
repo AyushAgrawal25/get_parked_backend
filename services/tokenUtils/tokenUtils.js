@@ -38,10 +38,10 @@ const verifyToken=function(req, res, next){
     }
 }
 
-module.exports={
-    generate:generateToken,
-    verify:verifyToken
-}
-
 const MAX_TIME_DIFFERENCE=1296000000;
 const AUTHORIZATION_TOKEN="authorization";
+module.exports={
+    generate:generateToken,
+    verify:verifyToken,
+    AUTHORIZATION_TOKEN:AUTHORIZATION_TOKEN
+}
