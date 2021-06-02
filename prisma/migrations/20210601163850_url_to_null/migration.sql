@@ -1,9 +1,0 @@
--- AlterTable
-ALTER TABLE `profilepic` MODIFY `url` VARCHAR(191),
-    MODIFY `thumbnail` VARCHAR(191);
-
--- AddForeignKey
-ALTER TABLE `UserDetails` ADD FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `ProfilePic` ADD FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
