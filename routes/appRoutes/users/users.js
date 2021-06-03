@@ -95,6 +95,7 @@ router.post("/addUserDetails", tokenUtils.verify, async(req, res)=>{
         let unCreate=prisma.userNotification.create({
             data:{
                 userId: userData.id,
+                token:req.body.fcmToken,
                 status:1,
             }
         });
