@@ -286,7 +286,8 @@ router.get("/getUser", tokenUtils.verify, async (req, res) => {
                 signUpStatus: true,
                 status: true,
                 userDetails:true,
-                profilePic:true
+                profilePic:true,
+                slots:true
             }
         });
 

@@ -3,7 +3,7 @@
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:@localhost:3306/prisma_db"
+  url      = "mysql://root:root@localhost:3306/prisma_db"
 }
 
 generator client {
@@ -11,17 +11,18 @@ generator client {
 }
 
 // signUpStatus to confirm that signUp is properly Completed or not.
-// whenever u create a new DB specify it to INNODB.
+// TODO: set Storage Engine to InnoDB in server also.
 
 model User {
-  id               Int                @id @default(autoincrement())
-  email            String             @unique() @db.VarChar(255)
-  userToken        String             @db.VarChar(255)
+  id               Int               @id @default(autoincrement())
+  email            String            @unique @db.VarChar(255)
+  userToken        String            @db.VarChar(255)
   signUpStatus     Int
   status           Int
   userDetails      UserDetails?
   profilePic       ProfilePic?
-  UserNotification UserNotification?
+  userNotification UserNotification?
+  slots            Slot?
 
   @@map("users")
 }
@@ -59,4 +60,25 @@ model UserNotification {
   status Int
 
   @@map("user_notifications")
+}
+
+model Slot {
+  id             Int    @id @default(autoincrement())
+  user           User?  @relation(fields: [userId], references: [id])
+  userId         Int
+  token          String @db.VarChar(1000)
+  name           String @db.VarChar(100)
+  address        String @db.VarChar(200)
+  state          String @db.VarChar(50)
+  city           String @db.VarChar(50)
+  pincode        String @db.VarChar(20)
+  landmark       String @db.VarChar(200)
+  locationName   String @db.VarChar(100)
+  country        String @db.VarChar(50)
+  isoCountryCode String @db.VarChar(10)
+  latitude       Float  @db.Double
+  longitude      Float  @db.Double
+  status         Int
+
+  @@map("slots")
 }
