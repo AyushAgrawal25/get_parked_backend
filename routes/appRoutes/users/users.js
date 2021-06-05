@@ -1,5 +1,6 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const notifySMS=require('./../../../services/notifications/AWS-SMS/AWS-SMS');
 
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const apiUtils = require('./../../../services/apiUtils/apiUtils');
@@ -63,12 +64,62 @@ const createStatus = {
     }
 }
 
+router.post("/phoneNumberVerification", tokenUtils.verify, async(req, res)=>{
+    try {
+        var successFunction = function (smsResp) {
+            // console.log(smsResp);
+            res.statusCode=phNumVerificationStatus.success.code;
+            res.json({
+                "statusText": "OTP Send",
+                "sendStatusCode": 1,
+                "otp": req.body.otp,
+                "phoneNumber": req.body.phoneNumber,
+                "response": smsResp,
+                message:phNumVerificationStatus.success.message,
+            });
+            return ;
+        }
+        var failFunction = function (smsResp) {
+            res.statusCode=phNumVerificationStatus.serverError.code;
+            res.json({
+                "statusText": "OTP Not Send",
+                "sendStatusCode": 0,
+                "response": smsResp,
+                message:phNumVerificationStatus.serverError.message,
+                status: 0
+            });
+            return ;
+        }
+
+        notifySMS.sendOTPSMS(req.body.otp, req.body.phoneNumber, successFunction, failFunction);
+        return;
+    } catch (error){
+        res.statusCode=phNumVerificationStatus.serverError.code;
+        res.json({
+            message:phNumVerificationStatus.serverError.message,
+            error:error
+        });
+    }
+});
+
+const phNumVerificationStatus={
+    success:{
+        code:200,
+        message:"OTP sent successfuly to the user.",
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error.."
+    }
+}
+
 router.post("/addUserDetails", tokenUtils.verify, async(req, res)=>{
     let userData=req.tokenData;
     try {
         const udResp=await prisma.userDetails.create({
             data:{
                 status:1,
+                email:userData.email,
                 dialCode:req.body.dialCode,
                 firstName:req.body.firstName,
                 gender:req.body.gender,
@@ -85,25 +136,12 @@ router.post("/addUserDetails", tokenUtils.verify, async(req, res)=>{
             });
             return ;
         }
-
-        // Create three promise for 
-        // Profile pic as null
-        // Notifications
-        // Update user data signUpStatus
-        
+  
         // Promise for Notifications Table
         let unCreate=prisma.userNotification.create({
             data:{
                 userId: userData.id,
                 token:req.body.fcmToken,
-                status:1,
-            }
-        });
-
-        // Promise for Profile Pic Table
-        let ppCreate=prisma.profilePic.create({
-            data:{
-                userId:userData.id,
                 status:1,
             }
         });
@@ -123,7 +161,7 @@ router.post("/addUserDetails", tokenUtils.verify, async(req, res)=>{
         });
 
         let allResp=await Promise.all([
-            unCreate, ppCreate, uUpdate
+            unCreate, uUpdate
         ]);
 
         // console.log(allResp);
@@ -182,6 +220,7 @@ router.post('/login', async (req, res) => {
             res.statusCode = loginStatus.success.code;
             let respBody = {
                 message: loginStatus.success.message,
+                user:user
             }
             respBody[tokenUtils.AUTHORIZATION_TOKEN] = tokenUtils.generate(user.id, user.email);
             res.json(respBody);
@@ -287,7 +326,6 @@ router.get("/getUser", tokenUtils.verify, async (req, res) => {
                 signUpStatus: true,
                 status: true,
                 userDetails:true,
-                profilePic:true,
                 slots:true
             }
         });
