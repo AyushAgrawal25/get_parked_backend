@@ -82,7 +82,26 @@ model Slot {
   endTime             Int
   spaceType           Int
   securityDepositTime Int
+  vehicles SlotVehicles[]
   status              Int
 
   @@map("slots")
+}
+
+model SlotVehicles{
+  id Int @id @default(autoincrement())
+  slot Slot? @relation(fields: [slotId], references:[id])
+  slotId Int
+  type VehicleType
+  fair Float @db.Double
+  status Int
+  @@map("slot_vehicles")
+}
+
+enum VehicleType{
+  BIKE
+  MINI
+  SEDAN
+  VAN
+  SUV
 }

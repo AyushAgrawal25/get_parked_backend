@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 router.post("/create", tokenUtils.verify, async(req, res)=>{
     const userData = req.tokenData;
     try{
-        let reqSlotData=req.body;
+        let reqSlotData=req.body.slotData;
         reqSlotData["status"]=1;
         reqSlotData["token"]=await crypto.randomBytes(40).toString('base64');
         reqSlotData["userId"]=userData.id;    
@@ -18,11 +18,24 @@ router.post("/create", tokenUtils.verify, async(req, res)=>{
             data:reqSlotData
         });
         if(slot){
-            res.statusCode=slotCreateStatus.success.code;
-            res.json({
-                message:slotCreateStatus.success.message,
-                slot:slot
+            let vehiclesData=[];
+            for(var i=0; i<req.body.vehicles.length; i++){
+                let vehicleData=req.body.vehicles[i];
+                vehicleData["slotId"]=slot.id;
+                vehicleData["status"]=1;
+                vehiclesData.push(vehicleData);
+            }
+
+            const vehicles=await prisma.slotVehicles.createMany({
+                data:vehiclesData
             });
+            if((vehicles)&&(vehicles.count>0)){
+                res.statusCode=slotCreateStatus.success.code;
+                res.json({
+                    message:slotCreateStatus.success.message,
+                    slot:slot
+                });
+            }
             return;
         }
         res.statusCode=slotCreateStatus.serverError.code;
