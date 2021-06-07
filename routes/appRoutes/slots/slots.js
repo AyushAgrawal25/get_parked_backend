@@ -25,7 +25,7 @@ router.post("/create", tokenUtils.verify, async(req, res)=>{
                 vehicleData["status"]=1;
                 vehiclesData.push(vehicleData);
             }
-
+            
             const vehicles=await prisma.slotVehicles.createMany({
                 data:vehiclesData
             });
@@ -63,5 +63,7 @@ const slotCreateStatus={
         message:"Internal Server Error..."
     }
 }
+
+// TODO: get parking lord function.
 
 module.exports = router;

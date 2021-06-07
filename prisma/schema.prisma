@@ -23,6 +23,10 @@ model User {
   userNotification UserNotification?
   slots            Slot?
 
+  SlotParkingRequest SlotParkingRequest[]
+  SlotBooking        SlotBooking[]
+  SlotParking        SlotParking[]
+  SlotRatingReview SlotRatingReview[]
   @@map("users")
 }
 
@@ -60,48 +64,158 @@ model UserNotification {
 }
 
 model Slot {
-  id                  Int    @id @default(autoincrement())
-  user                User?  @relation(fields: [userId], references: [id])
+  id                  Int            @id @default(autoincrement())
+  user                User?          @relation(fields: [userId], references: [id])
   userId              Int
-  token               String @db.VarChar(1000)
-  name                String @db.VarChar(100)
-  address             String @db.VarChar(200)
-  state               String @db.VarChar(50)
-  city                String @db.VarChar(50)
-  pincode             String @db.VarChar(20)
-  landmark            String @db.VarChar(200)
-  locationName        String @db.VarChar(100)
-  country             String @db.VarChar(50)
-  isoCountryCode      String @db.VarChar(10)
-  latitude            Float  @db.Double
-  longitude           Float  @db.Double
-  length              Float  @db.Double
-  breadth             Float  @db.Double
-  height              Float  @db.Double
+  token               String         @db.VarChar(1000)
+  name                String         @db.VarChar(100)
+  address             String         @db.VarChar(200)
+  state               String         @db.VarChar(50)
+  city                String         @db.VarChar(50)
+  pincode             String         @db.VarChar(20)
+  landmark            String         @db.VarChar(200)
+  locationName        String         @db.VarChar(100)
+  country             String         @db.VarChar(50)
+  isoCountryCode      String         @db.VarChar(10)
+  latitude            Float          @db.Double
+  longitude           Float          @db.Double
+  length              Float          @db.Double
+  breadth             Float          @db.Double
+  height              Float          @db.Double
   startTime           Int
   endTime             Int
   spaceType           Int
   securityDepositTime Int
-  vehicles SlotVehicles[]
+  vehicles            SlotVehicle[]
   status              Int
 
+  parkingRequests SlotParkingRequest[]
+  SlotBooking     SlotBooking[]
+  SlotParking     SlotParking[]
+  SlotRatingReview SlotRatingReview[]
   @@map("slots")
 }
 
-model SlotVehicles{
-  id Int @id @default(autoincrement())
-  slot Slot? @relation(fields: [slotId], references:[id])
+// Space type 1 and 2;
+// 1 available and 2 unavailable
+
+model SlotVehicle {
+  id     Int         @id @default(autoincrement())
+  slot   Slot?       @relation(fields: [slotId], references: [id])
   slotId Int
-  type VehicleType
-  fair Float @db.Double
+  type   VehicleType
+  fair   Float       @db.Double
   status Int
+
+  SlotParkingRequest SlotParkingRequest[]
+  SlotBooking        SlotBooking[]
+  SlotParking        SlotParking[]
+  SlotRatingReview SlotRatingReview[]
   @@map("slot_vehicles")
 }
 
-enum VehicleType{
+enum VehicleType {
   BIKE
   MINI
   SEDAN
   VAN
   SUV
+}
+
+model SlotParkingRequest {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  time         DateTime @updatedAt @db.DateTime
+  spaceType    Int
+  parkingHours Int
+  status       Int
+
+  SlotBooking SlotBooking[]
+  @@map("slot_parking_requests")
+}
+
+model SlotBooking {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  parkingRequest   SlotParkingRequest @relation(fields: [parkingRequestId], references: [id])
+  parkingRequestId Int
+
+  bookingOTP   String   @default("0000")
+  time         DateTime @updatedAt @db.DateTime
+  spaceType    Int
+  parkingHours Int
+
+  duration       Int
+  exceedDuration Int @default(0)
+
+  status Int
+
+  SlotParking SlotParking[]
+  @@map("slot_bookings")
+}
+
+model SlotParking {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  booking   SlotBooking @relation(fields: [bookingId], references: [id])
+  bookingId Int
+
+  withdrawOTP  String   @default("0000")
+  time         DateTime @updatedAt @db.DateTime
+  spaceType    Int
+  parkingHours Int
+  status       Int
+
+  SlotRatingReview SlotRatingReview[]
+  @@map("slot_parkings")
+}
+
+model SlotRatingReview {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  parking   SlotParking @relation(fields: [parkingId], references: [id])
+  parkingId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  ratingValue Float    @db.Double
+  review      String?  @db.VarChar(1000)
+  time        DateTime @default(now())
+  status      Int
+
+  @@map("slot_ratings_reviews")
 }
