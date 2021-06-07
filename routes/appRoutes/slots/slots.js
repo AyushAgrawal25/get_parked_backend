@@ -74,7 +74,8 @@ router.get("/parkingLord", tokenUtils.verify, async(req, res)=>{
             },
             include:{
                 vehicles:true,
-                SlotRatingReview:true
+                SlotRatingReview:true,
+                SlotImages:true
             }
         });
 
@@ -91,6 +92,9 @@ router.get("/parkingLord", tokenUtils.verify, async(req, res)=>{
             }
             slot["SlotRatingReview"]=undefined;
             slot["rating"]=overallRating;
+
+            slot["images"]=slot["SlotImages"];
+            slot["SlotImages"]=undefined;
 
             res.statusCode=parkingLordGetStatus.success.code;
             res.json({
@@ -120,7 +124,7 @@ const parkingLordGetStatus={
         message:"Parking Lord fetched sucessfully..."
     },
     notFound:{
-        code:404,
+        code:400,
         message:"No Parking Lord Found..."
     },
     serverError:{
