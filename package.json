@@ -9,9 +9,7 @@
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "prisma": "^2.23.0"
-  },
+  "devDependencies": {},
   "dependencies": {
     "@prisma/client": "^2.23.0",
     "aws-sdk": "^2.921.0",
