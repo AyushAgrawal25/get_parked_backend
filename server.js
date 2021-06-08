@@ -3,6 +3,7 @@ const cors=require('cors');
 const { PrismaClient } = require('@prisma/client')
 
 const appRoute=require('./routes/appRoutes/appRoutes.js');
+const imagesRoute=require('./routes/images/imagesRoute');
 
 const app=express();
 const prisma = new PrismaClient();
@@ -22,6 +23,7 @@ app.get("/",async (req, res)=>{
 });
 
 app.use('/app', appRoute);
+app.use('/images', imagesRoute);
 
 var server=app.listen(5000, ()=>{
     console.log("Server is running...");
