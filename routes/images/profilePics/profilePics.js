@@ -11,9 +11,9 @@ const imgCompUtils=require('./../../../services/imagesUtils/imageCompressionUtil
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const profilePicsPath=path.resolve('public/uploads/images/profilePics');
-const profilePicsThmbPath=path.resolve('public/uploads/images/profilePicThumbnails');
-const profilePicsTempPath=path.resolve('public/uploads/images/profilePicsTemp');
+const profilePicsOrgPath=path.resolve('public/uploads/images/profilePics/org');
+const profilePicsThmbPath=path.resolve('public/uploads/images/profilePics/thumbnails');
+const profilePicsTempPath=path.resolve('public/uploads/images/profilePics/temp');
 
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -60,7 +60,7 @@ router.post('/upload', tokenUtils.verify, upload.any(), async(req, res)=>{
         if(uDResp.picUrl!=null){
             const prevImgName=uDResp.picUrl.split('/')[uDResp.picUrl.split('/').length-1];
             try {
-                fs.unlinkSync(profilePicsPath+'/'+prevImgName);
+                fs.unlinkSync(profilePicsOrgPath+'/'+prevImgName);
                 fs.unlinkSync(profilePicsThmbPath+'/'+prevImgName);
             } catch (error) {
                 console.log(error);
@@ -91,7 +91,7 @@ router.post('/upload', tokenUtils.verify, upload.any(), async(req, res)=>{
             } catch (excp) {
                 console.log(excp);
                 // Delete all the files 
-                fs.unlinkSync(profilePicsTempPath+"/"+imgOldName);                  
+                fs.unlinkSync(profilePicsTempPath+"/"+imgNewName);                  
                 res.statusCode=profilePicUploadStatus.serverError.code;
                 res.json({
                     message:profilePicUploadStatus.serverError.message,
@@ -102,7 +102,7 @@ router.post('/upload', tokenUtils.verify, upload.any(), async(req, res)=>{
         }
 
         // Main Image File Compression
-        const imgCompRes=await imgCompUtils.compress(imgPath, profilePicsPath+'/', 2048, 2000);
+        const imgCompRes=await imgCompUtils.compress(imgPath, profilePicsOrgPath+'/', 2048, 2000);
         fs.unlinkSync(profilePicsTempPath+'/'+imgNewName);
 
         const uDUpdate=await prisma.userDetails.update({
@@ -110,8 +110,8 @@ router.post('/upload', tokenUtils.verify, upload.any(), async(req, res)=>{
                 id:uDResp.id
             },
             data:{
-                picThumbnailUrl:profilePicUtils.profilePicThumbnailPath+"/"+imgNewName,
-                picUrl:profilePicUtils.profilePicPath+"/"+imgNewName
+                picThumbnailUrl:profilePicUtils.thumbnailPath+"/"+imgNewName,
+                picUrl:profilePicUtils.orgPath+"/"+imgNewName
             }
         });
         if(uDUpdate){
@@ -124,8 +124,12 @@ router.post('/upload', tokenUtils.verify, upload.any(), async(req, res)=>{
         }
 
         // If fails delete all files from profile pics and thumbnails.
-        fs.unlinkSync(profilePicsThmbPath+"/"+imgNewName);
-        fs.unlinkSync(profilePicsPath+"/"+imgNewName);
+        try {
+            fs.unlinkSync(profilePicsThmbPath+"/"+imgNewName);
+            fs.unlinkSync(profilePicsOrgPath+"/"+imgNewName);
+        } catch (error) {
+            console.log(error);
+        }
         
         res.statusCode=profilePicUploadStatus.serverError.code;
         res.json({
@@ -156,11 +160,11 @@ const profilePicUploadStatus={
 }
 
 router.get('/orgPic/:fileName', async (req, res) => {
-    res.sendFile(profilePicsPath+'/'+req.params.fileName);
+    res.sendFile(profilePicsOrgPath+'/'+req.params.fileName);
 });
 
 router.get('/thmb/:fileName', async (req, res) => {
-    res.sendFile(profilePicsPath+'/'+req.params.fileName);
+    res.sendFile(profilePicsOrgPath+'/'+req.params.fileName);
 });
 
 module.exports=router;

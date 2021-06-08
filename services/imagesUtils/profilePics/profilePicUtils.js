@@ -1,4 +1,4 @@
 module.exports = {
-    profilePicPath: "/images/profilePics/orgPic",
-    profilePicThumbnailPath: "/images/profilePics/thmb"
+    orgPath: "/images/profilePics/orgPic",
+    thumbnailPath: "/images/profilePics/thmb"
 }
