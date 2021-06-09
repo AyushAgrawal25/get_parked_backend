@@ -361,11 +361,22 @@ router.delete('/', tokenUtils.verify, async(req, res)=>{
                 id:parseInt(req.body.slotImageId)
             }
         });
+        // If no image present.
         if(!slotImageResp){
             res.statusCode=slotImageDeleteStatus.notFound.code;
             res.json({
                 message:slotImageDeleteStatus.notFound.message,
             });
+            return;
+        }
+
+        // If its the main image.
+        if(slotImageResp.type==SlotImageType.Main){
+            res.statusCode=slotImageDeleteStatus.nonDeletable.code;
+            res.json({
+                message:slotImageDeleteStatus.nonDeletable.message
+            });
+            return;
         }
 
         try {
@@ -404,6 +415,10 @@ const slotImageDeleteStatus={
     success:{
         code:200,
         message:"Slot Image deleted successfully..."
+    },
+    nonDeletable:{
+        code:422,
+        message:"Slot Main Image cannot be deleted..."
     },
     notFound:{
         code:400,
