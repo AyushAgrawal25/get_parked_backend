@@ -35,7 +35,7 @@ router.post('/', tokenUtils.verify, upload.any(), async(req, res)=>{
     try {
         const slotResp=await prisma.slot.findFirst({
             where:{
-                userId:userData.id
+                userId:userData.id,
             },
         });
         
@@ -204,10 +204,13 @@ const slotImagePostStatus={
 router.put('/', tokenUtils.verify, upload.any(), async(req, res)=>{
     let userData=req.tokenData;
     try {
-        const slotImageResp=await prisma.slotImages.findUnique({
+        const slotImageResp=await prisma.slotImages.findFirst({
             where:{
                 id:parseInt(req.body.slotImageId),
-            }
+                slot:{
+                    userId:userData.id
+                }
+            },
         });
 
         if(!slotImageResp){
@@ -359,7 +362,11 @@ router.delete('/', tokenUtils.verify, async(req, res)=>{
         const slotImageResp=await prisma.slotImages.findUnique({
             where:{
                 id:parseInt(req.body.slotImageId)
+            },
+            slot:{
+                userId:userData.id
             }
+        
         });
         // If no image present.
         if(!slotImageResp){
