@@ -133,4 +133,67 @@ const parkingLordGetStatus={
     }
 }
 
+router.put('/details', tokenUtils.verify, async(req, res)=>{
+    let userData=req.tokenData;
+    try {
+        const slot=await prisma.slot.findFirst({
+            where:{
+                userId:userData.id,
+            }
+        });
+        if(!slot){
+            res.statusCode=slotDetailsUpdateStatus.notFound.code;
+            res.json({
+                message:slotDetailsUpdateStatus.notFound.message
+            });
+            return;
+        }
+
+        const slotUpdate=await prisma.slot.update({
+            data:{
+                name:req.body.name
+            },
+            where:{
+                id:slot.id
+            }
+        });
+
+        if(slotUpdate){
+            res.statusCode=slotDetailsUpdateStatus.success.code;
+            res.json({
+                message:slotDetailsUpdateStatus.success.message,
+                data:slotUpdate
+            });
+            return;
+        }
+
+        res.statusCode=slotDetailsUpdateStatus.serverError.code;
+        res.json({
+            message:slotDetailsUpdateStatus.serverError.message
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=slotDetailsUpdateStatus.serverError.code;
+        res.json({
+            error:error,
+            message:slotDetailsUpdateStatus.serverError.message
+        });
+    }
+});
+
+const slotDetailsUpdateStatus={
+    success:{
+        code:200,
+        message: "Parking Lord Details Update Successfully..."
+    },
+    notFound:{
+        code:400,
+        message:"Parking Lord not found..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error.."
+    }
+};
+
 module.exports = router;
