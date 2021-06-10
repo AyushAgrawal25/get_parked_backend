@@ -214,9 +214,9 @@ router.put('/', tokenUtils.verify, upload.any(), async(req, res)=>{
         });
 
         if(!slotImageResp){
-            res.statusCode=SlotImageUpdateStatus.notFound.code;
+            res.statusCode=slotImageUpdateStatus.notFound.code;
             res.json({
-                message:SlotImageUpdateStatus.notFound.message
+                message:slotImageUpdateStatus.notFound.message
             });
             return;
         }
@@ -341,7 +341,7 @@ router.put('/', tokenUtils.verify, upload.any(), async(req, res)=>{
     }
 });
 
-const SlotImageUpdateStatus={
+const slotImageUpdateStatus={
     success:{
         code:200,
         message:"Slot Image Updated successfully.."
@@ -359,12 +359,15 @@ const SlotImageUpdateStatus={
 router.delete('/', tokenUtils.verify, async(req, res)=>{
     let userData=req.tokenData;
     try {
-        const slotImageResp=await prisma.slotImages.findUnique({
+        const slotImageResp=await prisma.slotImages.findFirst({
             where:{
-                id:parseInt(req.body.slotImageId)
+                id:parseInt(req.body.slotImageId),
+                slot:{
+                    userId:parseInt(userData.id)
+                }
             },
-            slot:{
-                userId:userData.id
+            include:{
+                slot:true                
             }
         
         });
