@@ -113,7 +113,7 @@ const phNumVerificationStatus={
     }
 }
 
-router.post("/addUserDetails", tokenUtils.verify, async(req, res)=>{
+router.post("/userDetails", tokenUtils.verify, async(req, res)=>{
     let userData=req.tokenData;
     try {
         const udResp=await prisma.userDetails.create({
@@ -129,7 +129,7 @@ router.post("/addUserDetails", tokenUtils.verify, async(req, res)=>{
             }
         });
 
-        if(udResp==undefined){
+        if(!udResp){
             res.statusCode=addUserDetailsStatus.serverError.code;
             res.json({
                 message:addUserDetailsStatus.serverError.message
@@ -164,14 +164,15 @@ router.post("/addUserDetails", tokenUtils.verify, async(req, res)=>{
             unCreate, uUpdate
         ]);
 
-        // console.log(allResp);
+        // console.log(udResp);
         res.statusCode=addUserDetailsStatus.success.code;
         res.json({
             message:addUserDetailsStatus.success.message,
             data:[...allResp, udResp]
         });
     } catch (error) {
-        res.sendStatus=addUserDetailsStatus.serverError.code;
+        // console.log(error);
+        res.statusCode=addUserDetailsStatus.serverError.code;
         res.json({
             message:addUserDetailsStatus.serverError.message,
             error:error
@@ -189,6 +190,8 @@ const addUserDetailsStatus={
         message:"Internal Server Error.."
     }
 }
+
+router.put('/userDetails', );
 
 router.post('/login', async (req, res) => {
     console.log(req.body);
