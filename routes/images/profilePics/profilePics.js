@@ -11,7 +11,7 @@ const imgCompUtils=require('./../../../services/imagesUtils/imageCompressionUtil
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const profilePicsOrgPath=path.resolve('public/uploads/images/profilePics/org');
+const profilePicsOrgPath=path.resolve('public/uploads/images/profilePics/orginals');
 const profilePicsThmbPath=path.resolve('public/uploads/images/profilePics/thumbnails');
 const profilePicsTempPath=path.resolve('public/uploads/images/profilePics/temp');
 

@@ -11,7 +11,7 @@ const imgCompUtils=require('./../../../services/imagesUtils/imageCompressionUtil
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const slotImagesOrgPath=path.resolve('public/uploads/images/slotImages/org');
+const slotImagesOrgPath=path.resolve('public/uploads/images/slotImages/orginals');
 const slotImagesThmbPath=path.resolve('public/uploads/images/slotImages/thumbnails');
 const slotImagesTempPath=path.resolve('public/uploads/images/slotImages/temp');
 
