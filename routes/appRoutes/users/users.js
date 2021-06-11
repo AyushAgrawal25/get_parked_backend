@@ -191,7 +191,72 @@ const addUserDetailsStatus={
     }
 }
 
-router.put('/userDetails', );
+router.put('/userDetails', tokenUtils.verify, async(req, res)=>{
+    const userData = req.tokenData;
+    try {
+        let updateData={};
+        if((req.body.firstName)&&(req.body.firstName!=null)){
+            updateData.firstName=req.body.firstName;
+        }
+        if((req.body.lastName)&&(req.body.lastName!=null)){
+            updateData.lastName=req.body.lastName;
+        }
+        if((req.body.phoneNumber)&&(req.body.phoneNumber!=null)){
+            updateData.phoneNumber=req.body.phoneNumber;
+        }
+        if((req.body.dialCode)&&(req.body.dialCode!=null)){
+            updateData.dialCode=req.body.dialCode;
+        }
+        const userDetailsUpdate=await prisma.user.update({
+            where:{
+                id:parseInt(userData.id)
+            },
+            data:{
+                userDetails:{
+                    update:updateData
+                }
+            },
+            select:{
+                userDetails:true
+            }
+        });
+
+        if(userDetailsUpdate){
+            res.statusCode=userDetailsUpdateStatus.success.code;
+            res.json({
+                message:userDetailsUpdateStatus.success.message,
+                data:userDetailsUpdate.userDetails
+            });
+            return;
+        }
+        
+        res.statusCode=userDetailsUpdateStatus.serverError.code;
+        res.json({
+            message:userDetailsUpdateStatus.serverError.message,
+        });
+    } catch (error) {
+        res.statusCode=userDetailsUpdateStatus.serverError.code;
+        res.json({
+            message:userDetailsUpdateStatus.serverError.message,
+            error:error
+        });    
+    }
+});
+
+const userDetailsUpdateStatus={
+    success:{
+        code:200,
+        message:"User Details Updated successfully"
+    },
+    notFound:{
+        code:400,
+        message:"User Details not found.."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
 
 router.post('/login', async (req, res) => {
     console.log(req.body);
