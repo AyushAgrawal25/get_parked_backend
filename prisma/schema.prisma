@@ -84,7 +84,7 @@ model Slot {
   height              Float         @db.Double
   startTime           Int
   endTime             Int
-  spaceType           Int
+  spaceType           SlotSpaceType
   securityDepositTime Int
   vehicles            SlotVehicle[]
   status              Int
@@ -98,7 +98,11 @@ model Slot {
 }
 
 // Space type 1 and 2;
-// 1 available and 2 unavailable
+// 1 shed available and 2 open
+enum SlotSpaceType{
+  Sheded
+  Open
+}
 
 model SlotVehicle {
   id     Int         @id @default(autoincrement())
@@ -136,7 +140,7 @@ model SlotParkingRequest {
   vehicleId Int
 
   time         DateTime @default(now()) @db.Timestamp(0)
-  spaceType    Int
+  spaceType    SlotSpaceType
   parkingHours Int
   status       Int
 
@@ -161,7 +165,7 @@ model SlotBooking {
 
   bookingOTP   String   @default("0000")
   time         DateTime @default(now()) @db.Timestamp(0)
-  spaceType    Int
+  spaceType    SlotSpaceType
   parkingHours Int
 
   duration       Int
@@ -190,7 +194,7 @@ model SlotParking {
 
   withdrawOTP  String   @default("0000")
   time         DateTime @default(now()) @db.Timestamp(0)
-  spaceType    Int
+  spaceType    SlotSpaceType
   parkingHours Int
   status       Int
 
