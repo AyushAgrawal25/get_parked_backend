@@ -98,11 +98,11 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
             },
         });
 
-        if (slot){
+        if (slot) {
             //TODO: Add Ratings..
             const ratings = await prisma.slotRatingReview.aggregate({
-                _avg:{
-                    ratingValue:true,
+                _avg: {
+                    ratingValue: true,
                 },
             });
 
@@ -110,12 +110,12 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
 
             slot["images"] = slot["SlotImages"];
             slot["SlotImages"] = undefined;
-            
+
             // Important when u send vehicles data.
-            slot["vehicles"].forEach((vehicle)=>{
+            slot["vehicles"].forEach((vehicle) => {
                 vehiclesDetails.parse(vehicle);
             });
-            
+
             res.statusCode = parkingLordGetStatus.success.code;
             res.json({
                 message: parkingLordGetStatus.success.message,
@@ -216,23 +216,161 @@ const slotDetailsUpdateStatus = {
     }
 };
 
-// Complete this function.
 router.post('/parkingRequest', tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
+        // Status 0 means the request is pending.
         const parkingReq = await prisma.slotParkingRequest.create({
             data: {
                 slotId: parseInt(req.body.slotId),
                 userId: parseInt(userData.id),
                 vehicleId: parseInt(req.body.vehicleId),
-                spaceType: parseInt(req.body.spaceType),
-                parkingHours: parseInt(req.body.spaceType),
-                status: 1
+                spaceType: req.body.spaceType,
+                parkingHours: parseInt(req.body.parkingHours),
+                status: 0
+            },
+            include: {
+                slot: {
+                    include: {
+                        user: true,
+                    }
+                },
+                user: true
             }
         });
-    } catch (error) {
 
+        if (parkingReq) {
+            // Update SlotSocket Using this Data.
+            // Send notifications.
+
+            let respData = parkingReq;
+            respData["slot"] = undefined;
+            respData["user"] = undefined;
+            res.statusCode = parkingRequestStatus.success.code;
+            res.json({
+                data: respData,
+                message: parkingRequestStatus.success.message
+            });
+            return;
+        }
+
+        res.statusCode = parkingRequestStatus.serverError.code;
+        res.json({
+            message: parkingRequestStatus.serverError.message
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode = parkingRequestStatus.serverError.code;
+        res.json({
+            message: parkingRequestStatus.serverError.message
+        });
     }
 });
+
+const parkingRequestStatus = {
+    success: {
+        code: 200,
+        message: "Parking sent to Lord Successfully..."
+    },
+    serverError: {
+        code: 500,
+        message: "Internal Server Error..."
+    }
+}
+
+router.post("/parkingRequestResponse", tokenUtils.verify, async (req, res) => {
+    const userData = req.tokenData;
+    try {
+        let reqResp = (req.body.response == 1) ? 1 : 2;
+        const parkingReq=await prisma.slotParkingRequest.findUnique({
+            where:{
+                id:parseInt(req.body.parkingRequestId)
+            }
+        });
+
+        // Checking current status.
+        if(parkingReq.status!=0){
+            res.statusCode=parkingRequestResponseStatus.cannotBeAccepted.code;
+            res.json({
+                message:parkingRequestResponseStatus.cannotBeAccepted.message
+            });
+            return;
+        }
+
+        // Checking is expired..
+        const timeDiff=Date.now()-Date.parse(parkingReq.time);
+        if(timeDiff>3600000){
+            // Time should be less than 1 hr.
+            res.statusCode=parkingRequestResponseStatus.expired.code;
+            res.json({
+                message:parkingRequestResponseStatus.expired.message
+            });
+            return;
+        }
+        
+        const parkingReqUpdate = await prisma.slotParkingRequest.update({
+            where: {
+                id:parseInt(req.body.parkingRequestId)
+            },
+            data: {
+                status: reqResp
+            },
+            include: {
+                slot: {
+                    include: {
+                        user: true,
+                    }
+                },
+                user: true
+            }
+        });
+
+        if (parkingReqUpdate) {
+            // Update SlotSocket Using this Data.
+            // Send notifications.
+            
+            let respData=parkingReqUpdate;
+            respData["slot"]=undefined;
+            respData["user"]=undefined;
+
+            res.statusCode=parkingRequestResponseStatus.success.code;
+            res.json({
+                data:respData,
+                message:parkingRequestResponseStatus.success.message
+            });
+            return;
+        }
+
+        res.statusCode=parkingRequestResponseStatus.serverError.code;
+        res.json({
+            message:parkingRequestResponseStatus.serverError.message
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=parkingRequestResponseStatus.serverError.code;
+        res.json({
+            message:parkingRequestResponseStatus.serverError.message
+        });
+    }
+});
+
+const parkingRequestResponseStatus = {
+    success: {
+        code: 200,
+        message: "Parking Request Responded Successfully..."
+    },
+    cannotBeAccepted:{
+        code:400,
+        message:"Parking Request cannot be accepted..."
+    },
+    expired: {
+        code: 498,
+        message: "Parking Request Expired..."
+    },
+    serverError: {
+        code: 500,
+        message: "Internal Server Error..."
+    }
+}
 
 module.exports = router;

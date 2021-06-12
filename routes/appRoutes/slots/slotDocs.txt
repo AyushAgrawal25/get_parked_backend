@@ -1,0 +1,16 @@
+Parking request status
+0 -> pending or expired.
+1 -> accepted by parking lord but booking pending
+2 -> rejected by parking lord
+3 -> booked 
+
+Booking 
+0 -> Booking failed
+1 -> booked and on going.
+2 -> booked and now cancelled.
+3 -> booked and parking going on
+4 -> booked, parked and vehicle withrawn
+
+Parking 
+0 -> Parking completed
+1 -> parking going on
