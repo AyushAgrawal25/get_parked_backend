@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { PrismaClient, SlotSpaceType } = require('@prisma/client');
 
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
-const { parse } = require('dotenv');
+const stringUtils = require('./../../../services/operations/stringUtils');
 const vehiclesDetails = require('../../../services/vehicles/vehiclesDetails');
 
 const router = express.Router();
@@ -240,8 +240,8 @@ router.post('/parkingRequest', tokenUtils.verify, async (req, res) => {
         });
 
         if (parkingReq) {
-            // Update SlotSocket Using this Data.
-            // Send notifications.
+            //TODO: Update Sockets Using this Data.
+            //TODO: Send notifications.
 
             let respData = parkingReq;
             respData["slot"] = undefined;
@@ -288,6 +288,14 @@ router.post("/parkingRequestResponse", tokenUtils.verify, async (req, res) => {
             }
         });
 
+        if(!parkingReq){
+            res.statusCode=parkingRequestResponseStatus.cannotBeAccepted.code;
+            res.json({
+                message:parkingRequestResponseStatus.cannotBeAccepted.message
+            });
+            return;
+        }
+
         // Checking current status.
         if(parkingReq.status!=0){
             res.statusCode=parkingRequestResponseStatus.cannotBeAccepted.code;
@@ -326,8 +334,8 @@ router.post("/parkingRequestResponse", tokenUtils.verify, async (req, res) => {
         });
 
         if (parkingReqUpdate) {
-            // Update SlotSocket Using this Data.
-            // Send notifications.
+            //TODO: Update Sockets Using this Data.
+            //TODO: Send notifications.
             
             let respData=parkingReqUpdate;
             respData["slot"]=undefined;
@@ -372,5 +380,65 @@ const parkingRequestResponseStatus = {
         message: "Internal Server Error..."
     }
 }
+
+router.post("/booking", tokenUtils.verify, async(req, res)=>{
+    const userData=req.tokenData;
+    try {
+        const parkingRequestData=await prisma.slotParkingRequest.findUnique({
+            where:{
+                id:parseInt(req.body.parkingRequestId)
+            },
+            include:{
+                slot:{
+                    include:{
+                        SlotBooking:{
+                            where:{
+                                OR:[
+                                    {
+                                        status:{
+                                            equals:1
+                                        }
+                                    },
+                                    {
+                                        status:{
+                                            equals:3
+                                        }
+                                    }
+                                ]
+                            },
+
+                            include:{
+                                vehicle:true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Lock in sql,
+        // Prevent another person booking.
+        // Check space availablity.
+        
+        let parkingOTP=stringUtils.generateOTP();
+        const bookingResp=await prisma.slotBooking.create({
+            data:{
+                parkingRequestId:parseInt(req.body.parkingRequestId),   
+                duration: 0,
+                spaceType: parkingRequestData.spaceType,
+                parkingHours:parkingRequestData.parkingHours,
+                parkingOTP:parkingOTP,
+                slotId:parkingRequestData.slotId,
+                userId:parkingRequestData.userId,
+                vehicleId:parkingRequestData.vehicleId,
+                status: 1
+            }
+        });
+        res.json(parkingRequestData.slot.SlotBooking);
+    } catch (error) {
+        console.log(error);
+        res.json(error);
+    }
+});
 
 module.exports = router;
