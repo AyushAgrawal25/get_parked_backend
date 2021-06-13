@@ -294,6 +294,8 @@ model TransactionsReal {
   refCode     String
   time        DateTime        @default(now()) @db.Timestamp(0)
   status      Int
+
+  @@map("transactions_real")
 }
 
 model TransactionsNonReal {
@@ -315,6 +317,7 @@ model TransactionsNonReal {
   transferType MoneyTransferType
   time         DateTime          @default(now()) @db.Timestamp(0)
   status       Int
+  @@map("transactions_non_real")
 }
 
 enum TransactionNonRealType {

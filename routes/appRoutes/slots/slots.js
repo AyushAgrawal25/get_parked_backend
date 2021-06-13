@@ -577,4 +577,90 @@ const bookingStatus={
         message:"Internal Server Error..."
     }
 }
+
+router.get('/parkingRequestsForUser', tokenUtils.verify, async(req, res)=>{
+    const userdata=req.tokenData;
+    try {
+        const parkingReqs=await prisma.slotParkingRequest.findMany({
+            where:{
+                userId:parseInt(userdata.id)
+            },
+            include:{
+                slot:{
+                    select:{
+                        address:true,
+                        breadth:true,
+                        city:true, 
+                        country:true,
+                        endTime:true,
+                        height:true,
+                        id:true,
+                        isoCountryCode:true,
+                        landmark:true,
+                        latitude:true,
+                        length:true,
+                        locationName:true,
+                        longitude:true,
+                        name:true,
+                        pincode:true,
+                        securityDepositTime:true,
+                        spaceType:true,
+                        startTime:true,
+                        state:true,
+                        status:true,
+                        userId:true,
+                        SlotImages:true
+                    }
+                },
+                user:{
+                    select:{
+                        email:true, 
+                        id:true, 
+                        status:true,
+                        signUpStatus:true,
+                        userDetails:true
+                    }
+                },
+                vehicle:true,
+                SlotBooking:{
+                    include:{
+                        SlotParking:true,
+                    }
+                }
+            }
+        });
+
+        if(parkingReqs){
+            res.statusCode=parkingReqsGetStatusForUser.success.code;
+            res.json({
+                data:parkingReqs,
+                message:parkingLordGetStatus.success.message
+            });
+            return;
+        }
+
+        res.statusCode=parkingReqsGetStatusForUser.serverError.code;
+        res.json({
+            message:parkingReqsGetStatusForUser.serverError.message
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=parkingReqsGetStatusForUser.serverError.code;
+        res.json({
+            error:error,
+            message:parkingReqsGetStatusForUser.serverError.message
+        });
+    }
+});
+
+const parkingReqsGetStatusForUser={
+    success:{
+        code:200,
+        message:"Parking Requests fetched Successfully..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error.."
+    }
+}
 module.exports = router;
