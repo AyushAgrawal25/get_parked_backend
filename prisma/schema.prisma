@@ -23,11 +23,21 @@ model User {
   userNotification UserNotification?
   slots            Slot?
 
-  SlotParkingRequest SlotParkingRequest[]
-  SlotBooking        SlotBooking[]
-  SlotParking        SlotParking[]
-  SlotRatingReview   SlotRatingReview[]
+  SlotParkingRequest          SlotParkingRequest[]
+  SlotBooking                 SlotBooking[]
+  SlotParking                 SlotParking[]
+  SlotRatingReview            SlotRatingReview[]
+  Transactions                Transactions[]
+  TransactionsReal            TransactionsReal[]
+  fromUserTransactionsNonReal TransactionsNonReal[] @relation(name: "FromUser")
+  withUserTransactionsNonReal TransactionsNonReal[] @relation(name: "WithUser")
   @@map("users")
+}
+
+enum UserAccountType {
+  User
+  Slot
+  Admin
 }
 
 model UserDetails {
@@ -93,13 +103,13 @@ model Slot {
   SlotBooking      SlotBooking[]
   SlotParking      SlotParking[]
   SlotRatingReview SlotRatingReview[]
-  SlotImages SlotImages[]
+  SlotImages       SlotImages[]
   @@map("slots")
 }
 
 // Space type 1 and 2;
 // 1 shed available and 2 open
-enum SlotSpaceType{
+enum SlotSpaceType {
   Sheded
   Open
 }
@@ -139,7 +149,7 @@ model SlotParkingRequest {
   vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
   vehicleId Int
 
-  time         DateTime @updatedAt @default(now()) @db.Timestamp(0)
+  time         DateTime      @default(now()) @updatedAt @db.Timestamp(0)
   spaceType    SlotSpaceType
   parkingHours Int
   status       Int
@@ -163,8 +173,8 @@ model SlotBooking {
   parkingRequest   SlotParkingRequest @relation(fields: [parkingRequestId], references: [id])
   parkingRequestId Int
 
-  parkingOTP   String   @default("0000")
-  time         DateTime @default(now()) @db.Timestamp(0)
+  parkingOTP   String        @default("0000")
+  time         DateTime      @default(now()) @db.Timestamp(0)
   spaceType    SlotSpaceType
   parkingHours Int
 
@@ -192,8 +202,8 @@ model SlotParking {
   booking   SlotBooking @relation(fields: [bookingId], references: [id])
   bookingId Int
 
-  withdrawOTP  String   @default("0000")
-  time         DateTime @default(now()) @db.Timestamp(0)
+  withdrawOTP  String        @default("0000")
+  time         DateTime      @default(now()) @db.Timestamp(0)
   spaceType    SlotSpaceType
   parkingHours Int
   status       Int
@@ -226,20 +236,88 @@ model SlotRatingReview {
 }
 
 model SlotImages {
-  id     Int   @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   slot   Slot? @relation(fields: [slotId], references: [id])
   slotId Int
 
-  type SlotImageType
-  url String
+  type         SlotImageType
+  url          String
   thumbnailUrl String?
-  status Int
+  status       Int
 
   @@map("slot_images")
 }
 
-enum SlotImageType{
+enum SlotImageType {
   Main
   Others
+}
+
+enum TransactionType {
+  Real
+  NonReal
+}
+
+enum MoneyTransferType {
+  Add
+  Remove
+}
+
+model Transactions {
+  id Int @id @default(autoincrement())
+
+  typeRefId Int
+  type      TransactionType
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  accountType  UserAccountType
+  transferType MoneyTransferType
+
+  amount Float    @db.Double
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
+  @@map("transactions")
+}
+
+model TransactionsReal {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  accountType UserAccountType
+  amount      Float           @db.Double
+  ref         String
+  refCode     String
+  time        DateTime        @default(now()) @db.Timestamp(0)
+  status      Int
+}
+
+model TransactionsNonReal {
+  id Int @id @default(autoincrement())
+
+  typeRefId Int
+  type      TransactionNonRealType
+
+  fromUser        User            @relation(name: "FromUser", fields: [fromUserId], references: [id])
+  fromUserId      Int
+  fromAccountType UserAccountType
+
+  withUser        User            @relation(name: "WithUser", fields: [withUserId], references: [id])
+  withUserId      Int
+  withAccountType UserAccountType
+
+  amount       Float             @db.Double
+  refCode      String
+  transferType MoneyTransferType
+  time         DateTime          @default(now()) @db.Timestamp(0)
+  status       Int
+}
+
+enum TransactionNonRealType {
+  SlotBookings
+  TransactionRequests
 }

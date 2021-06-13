@@ -49,7 +49,7 @@ function parseVehicleData(vehicleData){
             vehicleData[key]=value;
         }
     });
-    return typeData;
+    return vehicleData;
 }
 
 function getVehicleTypeDatas(){

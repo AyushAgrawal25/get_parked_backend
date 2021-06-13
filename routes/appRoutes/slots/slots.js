@@ -412,14 +412,49 @@ router.post("/booking", tokenUtils.verify, async(req, res)=>{
                             }
                         }
                     }
-                }
+                },
+                vehicle:true
             }
         });
 
-        // Lock in sql,
-        // Prevent another person booking.
+        if(!parkingRequestData){
+            res.statusCode=bookingStatus.requestNotFound.code;
+            res.json({
+                message:bookingStatus.requestNotFound.message
+            });
+            return;
+        }
+
+        // TODO: check balance and security deposits also before booking.
+
         // Check space availablity.
+        let bookingVehicle=vehiclesDetails.parse(parkingRequestData.vehicle);
+        let bookedVehicles=[];
+        parkingRequestData.slot.SlotBooking.forEach((bookingData)=>{
+            let vehicleData=bookingData.vehicle;
+            vehicleData=vehiclesDetails.parse(vehicleData);
+            bookedVehicles.push(vehicleData);
+        });
+
+        let totalSpaceBooked=0;
+        bookedVehicles.forEach((vehicle)=>{
+            totalSpaceBooked+=(vehicle.length*vehicle.breadth);
+        });
+        let totalSpaceofSlot=parkingRequestData.slot.length*parkingRequestData.slot.breadth;
+        let availableSpace=totalSpaceofSlot-totalSpaceBooked;
+        let requiredSpace=bookingVehicle.length*bookingVehicle.breadth;
         
+        if(availableSpace<requiredSpace){
+            // TODO: send notification
+            // TODO: update sockets
+            
+            res.statusCode=bookingStatus.spaceUnavailable.code;
+            res.json({
+                message:bookingStatus.spaceUnavailable.message
+            });
+            return;
+        }
+
         let parkingOTP=stringUtils.generateOTP();
         const bookingResp=await prisma.slotBooking.create({
             data:{
@@ -434,11 +469,112 @@ router.post("/booking", tokenUtils.verify, async(req, res)=>{
                 status: 1
             }
         });
-        res.json(parkingRequestData.slot.SlotBooking);
+
+        // Rechecking bookings before sending update.
+        const bookingsBefore=await prisma.slotBooking.findMany({
+            where:{
+                AND:[
+                    {
+                        slotId:parkingRequestData.slotId,
+                    },
+                    {
+                        time:{
+                            lt:bookingResp.time,
+                        }
+                    },
+                    {
+                        OR:[
+                            {
+                                status:1
+                            },
+                            {
+                                status:1
+                            }
+                        ]
+                    }
+                ]
+            },
+            include:{
+                vehicle:true
+            }
+        });
+        // Checking for space again.
+        bookedVehicles=[];
+        bookingsBefore.forEach((bookingData)=>{
+            let vehicleData=bookingData.vehicle;
+            vehicleData=vehiclesDetails.parse(vehicleData);
+            bookedVehicles.push(vehicleData);
+        });
+
+        totalSpaceBooked=0;
+        bookedVehicles.forEach((vehicle)=>{
+            totalSpaceBooked+=(vehicle.length*vehicle.breadth);
+        });
+        availableSpace=totalSpaceofSlot-totalSpaceBooked;
+        if(availableSpace<requiredSpace){
+            // If Space is less than booking has been made before that.
+            // cancel this one to prevent from conflict.
+            const bookingDel=await prisma.slotBooking.delete({
+                where:{
+                    id:bookingResp.id
+                }
+            });
+
+            // TODO: send notification
+            // TODO: update sockets
+
+            res.statusCode=bookingStatus.spaceUnavailable.code;
+            res.json({
+                message:bookingStatus.spaceUnavailable.message
+            });
+            return;
+        }
+        
+        const parkingRequestUpdate=await prisma.slotParkingRequest.update({
+            where:{
+                id:parkingRequestData.id,
+            },
+            data:{
+                status:3
+            }
+        });        
+
+        // TODO: send notification
+        // TODO: update sockets
+        res.statusCode=bookingStatus.success.code;
+        res.json({
+            data:bookingResp,
+            message:bookingStatus.success.message
+        });
     } catch (error) {
-        console.log(error);
-        res.json(error);
+        res.statusCode=bookingStatus.serverError.code;
+        res.json({
+            message:bookingStatus.serverError.message,
+            error:error
+        });
     }
 });
 
+const bookingStatus={
+    success:{
+        code:200,
+        message:"Slot Booked Successfully..."
+    },
+    spaceUnavailable:{
+        code:400,
+        message:"Space Unavailable..."
+    },
+    balanceLow:{
+        code:402,
+        message:"Your Balance is low..."
+    },
+    requestNotFound:{
+        code:422,
+        message:"Parking Request Not found..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
 module.exports = router;
