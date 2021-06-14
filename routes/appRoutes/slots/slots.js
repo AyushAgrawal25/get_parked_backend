@@ -5,6 +5,8 @@ const { PrismaClient, SlotSpaceType } = require('@prisma/client');
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const stringUtils = require('./../../../services/operations/stringUtils');
 const vehiclesDetails = require('../../../services/vehicles/vehiclesDetails');
+const slotUtils = require('./slotUtils');
+const userUtils=require('./../users/userUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -587,39 +589,10 @@ router.get('/parkingRequestsForUser', tokenUtils.verify, async(req, res)=>{
             },
             include:{
                 slot:{
-                    select:{
-                        address:true,
-                        breadth:true,
-                        city:true, 
-                        country:true,
-                        endTime:true,
-                        height:true,
-                        id:true,
-                        isoCountryCode:true,
-                        landmark:true,
-                        latitude:true,
-                        length:true,
-                        locationName:true,
-                        longitude:true,
-                        name:true,
-                        pincode:true,
-                        securityDepositTime:true,
-                        spaceType:true,
-                        startTime:true,
-                        state:true,
-                        status:true,
-                        userId:true,
-                        SlotImages:true
-                    }
+                    select:slotUtils.selection
                 },
                 user:{
-                    select:{
-                        email:true, 
-                        id:true, 
-                        status:true,
-                        signUpStatus:true,
-                        userDetails:true
-                    }
+                    select:userUtils.selection
                 },
                 vehicle:true,
                 SlotBooking:{
@@ -631,7 +604,7 @@ router.get('/parkingRequestsForUser', tokenUtils.verify, async(req, res)=>{
         });
 
         if(parkingReqs){
-            res.statusCode=parkingReqsGetStatusForUser.success.code;
+            res.statusCode=parkingReqsGetStatus.success.code;
             res.json({
                 data:parkingReqs,
                 message:parkingLordGetStatus.success.message
@@ -639,24 +612,84 @@ router.get('/parkingRequestsForUser', tokenUtils.verify, async(req, res)=>{
             return;
         }
 
-        res.statusCode=parkingReqsGetStatusForUser.serverError.code;
+        res.statusCode=parkingReqsGetStatus.serverError.code;
         res.json({
-            message:parkingReqsGetStatusForUser.serverError.message
+            message:parkingReqsGetStatus.serverError.message
         });
     } catch (error) {
         console.log(error);
-        res.statusCode=parkingReqsGetStatusForUser.serverError.code;
+        res.statusCode=parkingReqsGetStatus.serverError.code;
         res.json({
             error:error,
-            message:parkingReqsGetStatusForUser.serverError.message
+            message:parkingReqsGetStatus.serverError.message
         });
     }
 });
 
-const parkingReqsGetStatusForUser={
+router.get('/parkingRequestsForSlot', tokenUtils.verify, async(req, res)=>{
+    const userdata=req.tokenData;
+    try {
+        const slot=await prisma.slot.findFirst({
+            where:{
+                userId:parseInt(userdata.id)
+            }
+        });
+        if(!slot){
+            res.statusCode=parkingReqsGetStatus.notFound.code;
+            res.json({
+                message:parkingReqsGetStatus.notFound.message
+            });
+            return;
+        }
+
+        const parkingReqs=await prisma.slotParkingRequest.findMany({
+            where:{
+                slotId:slot.id
+            },
+            include:{
+                user:{
+                    select:userUtils.selection
+                },
+                vehicle:true,
+                SlotBooking:{
+                    include:{
+                        SlotParking:true,
+                    }
+                }
+            }
+        });
+
+        if(parkingReqs){
+            res.statusCode=parkingReqsGetStatus.success.code;
+            res.json({
+                data:parkingReqs,
+                message:parkingLordGetStatus.success.message
+            });
+            return;
+        }
+
+        res.statusCode=parkingReqsGetStatus.serverError.code;
+        res.json({
+            message:parkingReqsGetStatus.serverError.message
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=parkingReqsGetStatus.serverError.code;
+        res.json({
+            error:error,
+            message:parkingReqsGetStatus.serverError.message
+        });
+    }
+});
+
+const parkingReqsGetStatus={
     success:{
         code:200,
         message:"Parking Requests fetched Successfully..."
+    },
+    notFound:{
+        code:400,
+        message:"Either slot or user is not found..."
     },
     serverError:{
         code:500,

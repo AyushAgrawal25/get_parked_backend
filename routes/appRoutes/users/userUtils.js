@@ -1,0 +1,9 @@
+module.exports={
+    selection:{
+        email:true, 
+        id:true, 
+        status:true,
+        signUpStatus:true,
+        userDetails:true
+    }
+}
