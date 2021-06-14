@@ -15,6 +15,13 @@ function generateToken(id, email){
 const verifyToken=function(req, res, next){
     try{
         const token=req.headers[AUTHORIZATION_TOKEN];
+        if(token==null){
+            res.statusCode=usc.invalidToken.code;
+            res.json({
+                message:usc.invalidToken.message
+            });
+            return;            
+        }
         const data=jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         // TODO: create time difference of 15 days.
         req.tokenData=data;
