@@ -36,7 +36,7 @@ const verifyToken=function(req, res, next){
         next();
     }
     catch(excp){
-        console.log(excp);
+        // console.log(excp);
         res.statusCode=usc.invalidToken.code;
         res.json({
             message:usc.invalidToken.message
