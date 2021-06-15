@@ -23,7 +23,7 @@ module.exports={
         state:true,
         status:true,
         userId:true,
-        SlotImages:true,
+        slotImages:true,
         user:{
             select:userUtils.selection
         }

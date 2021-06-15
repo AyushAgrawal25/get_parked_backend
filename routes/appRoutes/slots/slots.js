@@ -96,7 +96,7 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
             },
             include: {
                 vehicles: true,
-                SlotImages: true
+                slotImages: true
             },
         });
 
@@ -393,7 +393,7 @@ router.post("/booking", tokenUtils.verify, async(req, res)=>{
             include:{
                 slot:{
                     include:{
-                        SlotBooking:{
+                        bookings:{
                             where:{
                                 OR:[
                                     {
@@ -427,12 +427,21 @@ router.post("/booking", tokenUtils.verify, async(req, res)=>{
             return;
         }
 
+        if(parkingRequestData.status!=1){
+            // If parking request is not accepted.
+            res.statusCode=bookingStatus.requestNotAccepted.code;
+            res.json({
+                message:bookingStatus.requestNotAccepted.message
+            });
+            return;
+        }
+
         // TODO: check balance and security deposits also before booking.
 
         // Check space availablity.
         let bookingVehicle=vehiclesDetails.parse(parkingRequestData.vehicle);
         let bookedVehicles=[];
-        parkingRequestData.slot.SlotBooking.forEach((bookingData)=>{
+        parkingRequestData.slot.bookings.forEach((bookingData)=>{
             let vehicleData=bookingData.vehicle;
             vehicleData=vehiclesDetails.parse(vehicleData);
             bookedVehicles.push(vehicleData);
@@ -500,6 +509,7 @@ router.post("/booking", tokenUtils.verify, async(req, res)=>{
                 vehicle:true
             }
         });
+        
         // Checking for space again.
         bookedVehicles=[];
         bookingsBefore.forEach((bookingData)=>{
@@ -574,6 +584,10 @@ const bookingStatus={
         code:422,
         message:"Parking Request Not found..."
     },
+    requestNotAccepted:{
+        code:423,
+        message:"Parking Request Not Accepted yet..."
+    },
     serverError:{
         code:500,
         message:"Internal Server Error..."
@@ -589,15 +603,19 @@ router.get('/parkingRequestsForUser', tokenUtils.verify, async(req, res)=>{
             },
             include:{
                 slot:{
+                    // select:{
+                    //     id:true
+                    // }
+                    
                     select:slotUtils.selection
                 },
                 user:{
                     select:userUtils.selection
                 },
                 vehicle:true,
-                SlotBooking:{
+                booking:{
                     include:{
-                        SlotParking:true,
+                        parking:true,
                     }
                 }
             }
@@ -651,9 +669,9 @@ router.get('/parkingRequestsForSlot', tokenUtils.verify, async(req, res)=>{
                     select:userUtils.selection
                 },
                 vehicle:true,
-                SlotBooking:{
+                booking:{
                     include:{
-                        SlotParking:true,
+                        parking:true,
                     }
                 }
             }

@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 
+const crypto=require('crypto');
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 
 const router = express.Router();

@@ -23,14 +23,14 @@ model User {
   userNotification UserNotification?
   slots            Slot?
 
-  SlotParkingRequest          SlotParkingRequest[]
-  SlotBooking                 SlotBooking[]
-  SlotParking                 SlotParking[]
-  SlotRatingReview            SlotRatingReview[]
-  Transactions                Transactions[]
-  TransactionsReal            TransactionsReal[]
-  fromUserTransactionsNonReal TransactionsNonReal[] @relation(name: "FromUser")
-  withUserTransactionsNonReal TransactionsNonReal[] @relation(name: "WithUser")
+  parkingRequests         SlotParkingRequest[]
+  bookings                SlotBooking[]
+  parkings                SlotParking[]
+  slotRatingReviews           SlotRatingReview[]
+  transactions               Transaction[]
+  transactionsReal           TransactionReal[]
+  fromUserTransactionsNonReal TransactionNonReal[] @relation(name: "FromUser")
+  withUserTransactionsNonReal TransactionNonReal[] @relation(name: "WithUser")
   @@map("users")
 }
 
@@ -100,10 +100,10 @@ model Slot {
   status              Int
 
   parkingRequests  SlotParkingRequest[]
-  SlotBooking      SlotBooking[]
-  SlotParking      SlotParking[]
-  SlotRatingReview SlotRatingReview[]
-  SlotImages       SlotImages[]
+  bookings      SlotBooking[]
+  parkings      SlotParking[]
+  slotRatingReviews SlotRatingReview[]
+  slotImages       SlotImages[]
   @@map("slots")
 }
 
@@ -122,10 +122,10 @@ model SlotVehicle {
   fair   Float       @db.Double
   status Int
 
-  SlotParkingRequest SlotParkingRequest[]
-  SlotBooking        SlotBooking[]
-  SlotParking        SlotParking[]
-  SlotRatingReview   SlotRatingReview[]
+  parkingRequests SlotParkingRequest[]
+  bookings        SlotBooking[]
+  parkings        SlotParking[]
+  slotRatingReviews   SlotRatingReview[]
   @@map("slot_vehicles")
 }
 
@@ -154,7 +154,7 @@ model SlotParkingRequest {
   parkingHours Int
   status       Int
 
-  SlotBooking SlotBooking?
+  booking SlotBooking?
   @@map("slot_parking_requests")
 }
 
@@ -183,7 +183,7 @@ model SlotBooking {
 
   status Int
 
-  SlotParking SlotParking?
+  parking SlotParking?
   @@map("slot_bookings")
 }
 
@@ -208,7 +208,7 @@ model SlotParking {
   parkingHours Int
   status       Int
 
-  SlotRatingReview SlotRatingReview?
+  slotRatingReview SlotRatingReview?
   @@map("slot_parkings")
 }
 
@@ -264,29 +264,33 @@ enum MoneyTransferType {
   Remove
 }
 
-model Transactions {
-  id Int @id @default(autoincrement())
-
-  typeRefId Int
-  type      TransactionType
+model Transaction {
+  id   Int             @id @default(autoincrement())
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
 
   accountType  UserAccountType
   transferType MoneyTransferType
+  type TransactionType
 
   amount Float    @db.Double
   time   DateTime @default(now()) @db.Timestamp(0)
   status Int
+
+  transactionReal TransactionReal?
+  transactionNonReal TransactionNonReal?
   @@map("transactions")
 }
 
-model TransactionsReal {
+model TransactionReal {
   id Int @id @default(autoincrement())
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
+
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  transactionId Int
 
   accountType UserAccountType
   amount      Float           @db.Double
@@ -298,11 +302,12 @@ model TransactionsReal {
   @@map("transactions_real")
 }
 
-model TransactionsNonReal {
+model TransactionNonReal {
   id Int @id @default(autoincrement())
 
-  typeRefId Int
-  type      TransactionNonRealType
+  transaction   Transaction            @relation(fields: [transactionId], references: [id])
+  transactionId Int
+  type          TransactionNonRealType
 
   fromUser        User            @relation(name: "FromUser", fields: [fromUserId], references: [id])
   fromUserId      Int
