@@ -39,8 +39,11 @@ function getTransactionData(txCode){
 function getTransactionCode(data){
     let txnData={
         userId:data.userId,
-        code:crypto.randomBytes(16).toString('base64')   
+        code:"Txn_"+crypto.randomBytes(5).toString('hex')+Date.now(), 
+        ref:null,
+        status:0
     }
+    // console.log(txnData);
 
     const txnAsString=JSON.stringify(txnData);
     let txnCode=encryptData(txnAsString);

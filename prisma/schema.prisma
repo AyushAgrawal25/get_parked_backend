@@ -23,14 +23,16 @@ model User {
   userNotification UserNotification?
   slots            Slot?
 
-  parkingRequests         SlotParkingRequest[]
-  bookings                SlotBooking[]
-  parkings                SlotParking[]
+  parkingRequests             SlotParkingRequest[]
+  bookings                    SlotBooking[]
+  parkings                    SlotParking[]
   slotRatingReviews           SlotRatingReview[]
-  transactions               Transaction[]
-  transactionsReal           TransactionReal[]
-  fromUserTransactionsNonReal TransactionNonReal[] @relation(name: "FromUser")
-  withUserTransactionsNonReal TransactionNonReal[] @relation(name: "WithUser")
+  transactions                Transaction[]
+  transactionsReal            TransactionReal[]
+  fromUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionFromUser")
+  withUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionWithUser")
+  fromUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestFromUser")
+  wihtUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestWithUser")
   @@map("users")
 }
 
@@ -99,11 +101,11 @@ model Slot {
   vehicles            SlotVehicle[]
   status              Int
 
-  parkingRequests  SlotParkingRequest[]
-  bookings      SlotBooking[]
-  parkings      SlotParking[]
+  parkingRequests   SlotParkingRequest[]
+  bookings          SlotBooking[]
+  parkings          SlotParking[]
   slotRatingReviews SlotRatingReview[]
-  slotImages       SlotImages[]
+  slotImages        SlotImages[]
   @@map("slots")
 }
 
@@ -122,10 +124,10 @@ model SlotVehicle {
   fair   Float       @db.Double
   status Int
 
-  parkingRequests SlotParkingRequest[]
-  bookings        SlotBooking[]
-  parkings        SlotParking[]
-  slotRatingReviews   SlotRatingReview[]
+  parkingRequests   SlotParkingRequest[]
+  bookings          SlotBooking[]
+  parkings          SlotParking[]
+  slotRatingReviews SlotRatingReview[]
   @@map("slot_vehicles")
 }
 
@@ -180,6 +182,8 @@ model SlotBooking {
 
   duration       Int
   exceedDuration Int @default(0)
+
+  //TODO: Transactions
 
   status Int
 
@@ -265,21 +269,24 @@ enum MoneyTransferType {
 }
 
 model Transaction {
-  id   Int             @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
 
   accountType  UserAccountType
   transferType MoneyTransferType
-  type TransactionType
+  type         TransactionType
 
   amount Float    @db.Double
   time   DateTime @default(now()) @db.Timestamp(0)
   status Int
 
-  transactionReal TransactionReal?
+  transactionReal    TransactionReal?
   transactionNonReal TransactionNonReal?
+
+  fromUserTransactionRequest TransactionRequests? @relation(name: "FromUserTransaction")
+  withUserTransactionRequest TransactionRequests? @relation(name: "WithUserTransaction")
   @@map("transactions")
 }
 
@@ -292,12 +299,18 @@ model TransactionReal {
   transaction   Transaction @relation(fields: [transactionId], references: [id])
   transactionId Int
 
-  accountType UserAccountType
-  amount      Float           @db.Double
-  ref         String
-  refCode     String
-  time        DateTime        @default(now()) @db.Timestamp(0)
-  status      Int
+  accountType  UserAccountType
+  amount       Float             @db.Double
+  transferType MoneyTransferType
+
+  // UPI reference Code
+  ref String
+
+  // Backened generated reference code.
+  refCode String
+
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
 
   @@map("transactions_real")
 }
@@ -309,11 +322,11 @@ model TransactionNonReal {
   transactionId Int
   type          TransactionNonRealType
 
-  fromUser        User            @relation(name: "FromUser", fields: [fromUserId], references: [id])
+  fromUser        User            @relation(name: "NonRealTransactionFromUser", fields: [fromUserId], references: [id])
   fromUserId      Int
   fromAccountType UserAccountType
 
-  withUser        User            @relation(name: "WithUser", fields: [withUserId], references: [id])
+  withUser        User            @relation(name: "NonRealTransactionWithUser", fields: [withUserId], references: [id])
   withUserId      Int
   withAccountType UserAccountType
 
@@ -328,4 +341,31 @@ model TransactionNonReal {
 enum TransactionNonRealType {
   SlotBookings
   TransactionRequests
+}
+
+model TransactionRequests {
+  id Int @id @default(autoincrement())
+
+  fromUser        User            @relation(name: "TransactionRequestFromUser", fields: [fromUserId], references: [id])
+  fromUserId      Int
+  fromAccountType UserAccountType
+
+  withUser        User            @relation(name: "TransactionRequestWithUser", fields: [withUserId], references: [id])
+  withUserId      Int
+  withAccountType UserAccountType
+
+  amount       Float             @db.Double
+  note         String            @default("")
+  transferType MoneyTransferType
+
+  fromUserTransaction   Transaction? @relation(name: "FromUserTransaction", fields: [fromUserTransactionId], references: [id])
+  fromUserTransactionId Int?
+
+  withUserTransaction   Transaction? @relation(name: "WithUserTransaction", fields: [wihtUserTransactionId], references: [id])
+  wihtUserTransactionId Int?
+
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
+
+  @@map("transaction_requests")
 }

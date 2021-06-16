@@ -1,0 +1,13 @@
+// real Transaction post
+encrypted code will consists of UPI ref and status 
+
+// Model structure
+
+Entity (Booking or Transaction Request)
+                    |
+
+                Transaction
+                
+                    |
+
+        Real or NonReal Transaction
