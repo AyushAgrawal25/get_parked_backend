@@ -183,7 +183,18 @@ model SlotBooking {
   duration       Int
   exceedDuration Int @default(0)
 
-  //TODO: Transactions
+  //Transactions
+  fromUserToSlotTransaction Transaction? @relation(name: "FromUserToSlot_Transaction", fields: [fromUserToSlotTransactionId], references: [id])
+  fromUserToSlotTransactionId Int?
+
+  fromSlotToUserTransaction Transaction? @relation(name: "FromSlotToUser_Transaction", fields: [fromSlotToUserTransactionId], references: [id])
+  fromSlotToUserTransactionId Int?
+
+  fromSlotToAppTransaction Transaction? @relation(name: "FromSlotToApp_Transaction", fields: [fromSlotToAppTransactionId], references: [id])
+  fromSlotToAppTransactionId Int?
+
+  fromAppToSlotTransaction Transaction? @relation(name: "FromAppToSlot_Transaction", fields: [fromAppToSlotTransactionId], references: [id])
+  fromAppToSlotTransactionId Int?
 
   status Int
 
@@ -287,6 +298,12 @@ model Transaction {
 
   fromUserTransactionRequest TransactionRequests? @relation(name: "FromUserTransaction")
   withUserTransactionRequest TransactionRequests? @relation(name: "WithUserTransaction")
+
+  fromUserToSlot_booking SlotBooking ? @relation(name:"FromUserToSlot_Transaction")
+  fromSlotToUser_booking SlotBooking ? @relation(name:"FromSlotToUser_Transaction")
+  fromSlotToApp_booking SlotBooking ? @relation(name:"FromSlotToApp_Transaction")
+  fromAppToSlot_booking SlotBooking ? @relation(name:"FromAppToSlot_Transaction")
+  
   @@map("transactions")
 }
 
