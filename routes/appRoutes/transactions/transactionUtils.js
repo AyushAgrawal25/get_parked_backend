@@ -1,10 +1,13 @@
 require('dotenv').config();
 
 const crypto=require('crypto');
+const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType } = require('@prisma/client');
 
 const algorithm = 'aes-256-cbc';
 const cryptionIV = Buffer.alloc(16, 0);
 const cryptionKey= Buffer.from((process.env.ENCRYPTION_KEY).substring(0, 32), "utf-8");
+
+const prisma = new PrismaClient();
 
 function encryptData(data){
     try {
@@ -54,8 +57,37 @@ function generateTransactionRefId(data){
     return "Txn_"+crypto.randomBytes(5).toString('hex')+Date.now();
 }
 
+async function walletBalance(userId){
+    const addTxns=await prisma.transaction.aggregate({
+        _sum:{
+            amount:true,
+        },
+        where:{
+            userId:parseInt(userId),
+            accountType:UserAccountType.User,
+            transferType: MoneyTransferType.Add,
+            status:1
+        }
+    });
+
+    const removeTxns=await prisma.transaction.aggregate({
+        _sum:{
+            amount:true,
+        },
+        where:{
+            userId:parseInt(userId),
+            accountType:UserAccountType.User,
+            transferType: MoneyTransferType.Remove,
+            status:1
+        }
+    });
+
+    return addTxns._sum.amount-removeTxns._sum.amount;
+}
+
 module.exports={
     getTransactionData,
     getTransactionCode,
-    generateTransactionRefId
+    generateTransactionRefId,
+    walletBalance
 }

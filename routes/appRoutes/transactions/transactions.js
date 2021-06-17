@@ -35,7 +35,11 @@ router.get("/forUser", tokenUtils.verify, async (req, res) => {
             }
         });
 
-        res.json(txns);
+        const balance=await transactionUtils.walletBalance(userData.id);
+        res.json({
+            walletBalance:balance,
+            transactions:txns
+        });
     } catch (error) {
         console.log(error);
         res.json(error);
@@ -109,7 +113,7 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
                 status: decryptedTxnData.status,
                 transferType: req.body.moneyTransferType,
                 type: TransactionType.Real,
-                userId: decryptedTxnData.status
+                userId: parseInt(decryptedTxnData.userId)
             }
         });
         if (!txn) {
@@ -231,18 +235,30 @@ const txnReqPostStatus={
 router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
     let userData=req.tokenData;
     try {
-        const txnReqData=await prisma.transactionRequests.findUnique({
+        const txnReqData=await prisma.transactionRequests.findFirst({
             where:{
-                id:parseInt(req.body.requestId)
+                id:parseInt(req.body.requestId),
+                withUserId:parseInt(userData.id)
             }
         });
-        if(txnReqData.status!=0){
+        if((!txnReqData)||(txnReqData.status!=0)){
             res.statusCode=txnReqResponseStatus.cannotBeProceed.code;
             res.json({
                 message:txnReqResponseStatus.cannotBeProceed.message
             });
             return;
         }
+
+        // Wallet balance of the acceptor must be greater than amount.
+        let walletBalance=await transactionUtils.walletBalance(userData.id);
+        if(walletBalance<txnReqData.amount){
+            res.statusCode=txnReqResponseStatus.lowBalance.code;
+            res.json({
+                message:txnReqResponseStatus.lowBalance.message
+            });
+            return;
+        }
+        
         if(req.body.response==2){
             // Reject response.
             const updateRequest=await prisma.transactionRequests.update({
@@ -261,7 +277,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 });
                 return;
             }
-            
+        
             res.statusCode=txnReqResponseStatus.serverError.code;
             res.json({
                 message:txnReqResponseStatus.serverError.message
@@ -363,7 +379,9 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 id:txnReqData.id
             },
             data:{
-                status:1
+                status:1,
+                fromUserTransactionId:fromTxnData.id,
+                wihtUserTransactionId:withTxnData.id
             }
         });
         if(!updateRequest){
@@ -392,7 +410,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                     ]
                 }
             });
-
+            
             res.statusCode=txnReqResponseStatus.serverError.code;
             res.json({
                 message:txnReqResponseStatus.serverError.message
@@ -406,9 +424,11 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
         });
         return;
     } catch (error) {
+        console.log(error);
         res.statusCode=txnReqResponseStatus.serverError.code;
         res.json({
-            message:txnReqResponseStatus.serverError.message
+            message:txnReqResponseStatus.serverError.message,
+            error:error
         });
         return;
     }
@@ -422,6 +442,10 @@ const txnReqResponseStatus={
     cannotBeProceed:{
         code:422,
         message:"Cannot process this request..."
+    },
+    lowBalance:{
+        code:400,
+        message:"Low Balance..."
     },
     serverError:{
         code:500,
