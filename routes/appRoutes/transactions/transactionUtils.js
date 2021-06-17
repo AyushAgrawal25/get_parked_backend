@@ -39,7 +39,7 @@ function getTransactionData(txCode){
 function getTransactionCode(data){
     let txnData={
         userId:data.userId,
-        code:"Txn_"+crypto.randomBytes(5).toString('hex')+Date.now(), 
+        code:generateTransactionRefId(), 
         ref:null,
         status:0
     }
@@ -50,7 +50,12 @@ function getTransactionCode(data){
     return encryptData(txnCode);
 }
 
+function generateTransactionRefId(data){
+    return "Txn_"+crypto.randomBytes(5).toString('hex')+Date.now();
+}
+
 module.exports={
     getTransactionData,
-    getTransactionCode
+    getTransactionCode,
+    generateTransactionRefId
 }

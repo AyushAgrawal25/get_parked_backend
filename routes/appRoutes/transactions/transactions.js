@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { PrismaClient, TransactionType } = require('@prisma/client');
+const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType } = require('@prisma/client');
 
 const slotUtils = require('./../slots/slotUtils');
 const userUtils = require('./../users/userUtils');
@@ -228,6 +228,205 @@ const txnReqPostStatus={
 }
 
 // TODO: Accept transaction request and all.
-router.post('/');
+router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
+    let userData=req.tokenData;
+    try {
+        const txnReqData=await prisma.transactionRequests.findUnique({
+            where:{
+                id:parseInt(req.body.requestId)
+            }
+        });
+        if(txnReqData.status!=0){
+            res.statusCode=txnReqResponseStatus.cannotBeProceed.code;
+            res.json({
+                message:txnReqResponseStatus.cannotBeProceed.message
+            });
+            return;
+        }
+        if(req.body.response==2){
+            // Reject response.
+            const updateRequest=await prisma.transactionRequests.update({
+                where:{
+                    id:txnReqData.id
+                },
+                data:{
+                    status:2
+                }
+            });
+            if(updateRequest){
+                res.statusCode=txnReqResponseStatus.success.code;
+                res.json({
+                    message:txnReqResponseStatus.success.message,
+                    data:updateRequest
+                });
+                return;
+            }
+            
+            res.statusCode=txnReqResponseStatus.serverError.code;
+            res.json({
+                message:txnReqResponseStatus.serverError.message
+            });
+            return;
+        }
+
+        // TODO: work on security deposit and wallet balance.
+
+        // The man who sent the request must get the money.
+        // Thats why money transfer type remains same here.
+        const fromTxnCreate=prisma.transaction.create({
+            data:{
+                accountType:txnReqData.fromAccountType,
+                transferType: txnReqData.transferType,
+                type:TransactionType.NonReal,
+                amount:txnReqData.amount,
+                status:1,
+                userId:txnReqData.fromUserId
+            }
+        });
+        const withTxnCreate=prisma.transaction.create({
+            data:{
+                accountType:txnReqData.withAccountType,
+                transferType: (txnReqData.transferType==MoneyTransferType.Add) ? MoneyTransferType.Remove:MoneyTransferType.Add,
+                type:TransactionType.NonReal,
+                amount:txnReqData.amount,
+                status:1,
+                userId:txnReqData.withUserId
+            }
+        });
+
+        const txnCreate=await prisma.$transaction([fromTxnCreate, withTxnCreate]);
+        if(!txnCreate){
+            res.statusCode=txnReqResponseStatus.serverError.code;
+            res.json({
+                message:txnReqResponseStatus.serverError.message
+            });
+            return;
+        }
+        const fromTxnData=txnCreate[0];
+        const withTxnData=txnCreate[1];
+        
+        const txnRefCode=transactionUtils.generateTransactionRefId();
+        // From is the same of transaction request in this case.
+        const fromTxnNonRealCreate=prisma.transactionNonReal.create({
+            data:{
+                fromUserId:txnReqData.fromUserId,
+                fromAccountType: txnReqData.fromAccountType,
+                amount: txnReqData.amount,
+                refCode:txnRefCode,
+                transferType: fromTxnData.transferType,
+                withAccountType:txnReqData.withAccountType,
+                withUserId:txnReqData.withUserId,
+                status:1,
+                type:TransactionNonRealType.TransactionRequests,
+                transactionId:fromTxnData.id,
+            }
+        });
+
+        const withTxnNonRealCreate=prisma.transactionNonReal.create({
+            data:{
+                fromUserId:txnReqData.withUserId,
+                fromAccountType: txnReqData.withAccountType,
+                amount: txnReqData.amount,
+                refCode:txnRefCode,
+                transferType: withTxnData.transferType,
+                withAccountType:txnReqData.fromAccountType,
+                withUserId:txnReqData.fromUserId,
+                status:1,
+                type:TransactionNonRealType.TransactionRequests,
+                transactionId:withTxnData.id,
+            }
+        });
+
+        const nonRealTxnCreate=await prisma.$transaction([fromTxnNonRealCreate, withTxnNonRealCreate]);
+        if(!nonRealTxnCreate){
+            // Delete the txns also and show.
+            const delTxn=await prisma.transaction.deleteMany({
+                where:{
+                    OR:[
+                        {
+                            id:fromTxnData.id
+                        },
+                        {
+                            id:withTxnData.id
+                        }
+                    ]
+                }
+            });
+            res.statusCode=txnReqResponseStatus.serverError.code;
+            res.json({
+                message:txnReqResponseStatus.serverError.message
+            });
+            return;
+        }
+        const updateRequest=await prisma.transactionRequests.update({
+            where:{
+                id:txnReqData.id
+            },
+            data:{
+                status:1
+            }
+        });
+        if(!updateRequest){
+            const delTxn=await prisma.transaction.deleteMany({
+                where:{
+                    OR:[
+                        {
+                            id:fromTxnData.id
+                        },
+                        {
+                            id:withTxnData.id
+                        }
+                    ]
+                }
+            });
+
+            const delNonRealTxn=await prisma.transactionNonReal.deleteMany({
+                where:{
+                    OR:[
+                        {
+                            id:nonRealTxnCreate[0].id,
+                        },
+                        {
+                            id:nonRealTxnCreate[1].id,
+                        }
+                    ]
+                }
+            });
+
+            res.statusCode=txnReqResponseStatus.serverError.code;
+            res.json({
+                message:txnReqResponseStatus.serverError.message
+            });
+            return;
+        }
+        res.statusCode=txnReqResponseStatus.success.code;
+        res.json({
+            message:txnReqResponseStatus.success.message,
+            data:updateRequest
+        });
+        return;
+    } catch (error) {
+        res.statusCode=txnReqResponseStatus.serverError.code;
+        res.json({
+            message:txnReqResponseStatus.serverError.message
+        });
+        return;
+    }
+});
+
+const txnReqResponseStatus={
+    success:{
+        code:200,
+        message:"Transaction Request Responded Successfully..."
+    },
+    cannotBeProceed:{
+        code:422,
+        message:"Cannot process this request..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
 
 module.exports = router;
