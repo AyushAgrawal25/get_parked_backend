@@ -11,11 +11,13 @@ const userUtils=require('./../users/userUtils');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const parkingRequestsRoute=require('./parkingRequests');
+const parkingRequestsRoute=require('./parkingRequests/parkingRequests');
 const bookingsRoute=require('./bookings/bookings');
+const parkingsRoute=require('./parkings/parkings');
 
 router.use("/parkingRequests", parkingRequestsRoute);
 router.use("/bookings", bookingsRoute);
+router.use("/parkings", parkingsRoute);
 
 router.post("/create", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;

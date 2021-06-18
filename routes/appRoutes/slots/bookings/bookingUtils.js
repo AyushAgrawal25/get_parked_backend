@@ -1,5 +1,5 @@
 function getTotalAmt(duration, exceedDuration, fair){
-    // Duration should be in seconds.
+    // Duration should be in minutes.
     const durationAmt=(duration/60)*fair;
     const exceedDurationAmt=(exceedDuration/60)*2*fair;
 

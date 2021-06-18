@@ -455,6 +455,10 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
                     ]
                 }
             });
+            res.statusCode=bookingCancellationStatus.serverError.code;
+            res.json({
+                message:bookingCancellationStatus.serverError.message
+            });
             return;
         }
         res.json({

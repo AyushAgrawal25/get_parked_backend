@@ -2,9 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType } = require('@prisma/client');
 
-const slotUtils = require('./../slots/slotUtils');
-const userUtils = require('./../users/userUtils');
-const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
+const slotUtils = require('../slotUtils');
+const userUtils = require('../../users/userUtils');
+const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -196,6 +196,11 @@ router.get('/forUser', tokenUtils.verify, async(req, res)=>{
                 booking:{
                     include:{
                         parking:true,
+                        fromUserToSlotTransaction:{
+                            include:{
+                                fromUserToSlot_booking:true
+                            }
+                        }
                     }
                 }
             }
@@ -252,6 +257,11 @@ router.get('/forSlot', tokenUtils.verify, async(req, res)=>{
                 booking:{
                     include:{
                         parking:true,
+                        fromSlotToUserTransaction:{
+                            include:{
+                                fromSlotToUser_booking:true
+                            }
+                        }
                     }
                 }
             }
