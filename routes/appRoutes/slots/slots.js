@@ -12,7 +12,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 const parkingRequestsRoute=require('./parkingRequests');
-const bookingsRoute=require('./bookings');
+const bookingsRoute=require('./bookings/bookings');
 
 router.use("/parkingRequests", parkingRequestsRoute);
 router.use("/bookings", bookingsRoute);
