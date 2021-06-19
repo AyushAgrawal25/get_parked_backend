@@ -10,7 +10,7 @@ const transactionUtils = require('./transactionUtils');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-router.get("/forUser", tokenUtils.verify, async (req, res) => {
+router.get("/", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
         const txns=await prisma.transaction.findMany({
@@ -28,6 +28,9 @@ router.get("/forUser", tokenUtils.verify, async (req, res) => {
                 transactionNonReal:{
                     include:{
                         withUser:{
+                            select:userUtils.selectionWithSlot
+                        },
+                        fromUser:{
                             select:userUtils.selectionWithSlot
                         }
                     }

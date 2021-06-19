@@ -14,7 +14,7 @@ module.exports={
         status:true,
         signUpStatus:true,
         userDetails:true,
-        slots:{
+        slot:{
             select:{
                 address:true,
                 breadth:true,

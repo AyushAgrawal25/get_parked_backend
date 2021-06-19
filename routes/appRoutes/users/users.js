@@ -4,6 +4,7 @@ const notifySMS=require('./../../../services/notifications/AWS-SMS/AWS-SMS');
 
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const apiUtils = require('./../../../services/apiUtils/apiUtils');
+const slotUtils = require('../slots/slotUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -394,7 +395,6 @@ router.get("/getUser", tokenUtils.verify, async (req, res) => {
                 signUpStatus: true,
                 status: true,
                 userDetails:true,
-                slots:true
             }
         });
 

@@ -21,7 +21,7 @@ model User {
   status           Int
   userDetails      UserDetails?
   userNotification UserNotification?
-  slots            Slot?
+  slot            Slot?
 
   parkingRequests             SlotParkingRequest[]
   bookings                    SlotBooking[]
