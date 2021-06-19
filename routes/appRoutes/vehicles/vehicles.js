@@ -2,14 +2,14 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
-const vehicleDetails=require('./../../../services/vehicles/vehiclesDetails');
+const vehicleUtils=require('./vehicleUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 router.get("/types", tokenUtils.verify, async(req, res)=>{
     try {
-        const typesData=vehicleDetails.getTypesData();
+        const typesData=vehicleUtils.getTypesData();
         res.statusCode=getTypesStatus.success.code;
         res.json({
             data:typesData,

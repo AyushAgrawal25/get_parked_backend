@@ -6,7 +6,7 @@ const transactionUtils = require('./../../transactions/transactionUtils');
 const slotUtils = require('../slotUtils');
 const userUtils = require('../../users/userUtils');
 const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
-const vehiclesDetails = require('../../../../services/vehicles/vehiclesDetails');
+const vehicleUtils = require('../../vehicles/vehicleUtils');
 const stringUtils = require('../../../../services/operations/stringUtils');
 const bookingUtils = require('./bookingUtils');
 
@@ -23,29 +23,16 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             include:{
                 slot:{
                     include:{
-                        bookings:{
-                            where:{
-                                OR:[
-                                    {
-                                        status:{
-                                            equals:1
-                                        }
-                                    },
-                                    {
-                                        status:{
-                                            equals:3
-                                        }
-                                    }
-                                ]
-                            },
-
-                            include:{
-                                vehicle:true
-                            }
+                        user:{
+                            select:userUtils.selection
                         }
                     }
                 },
-                vehicle:true
+                vehicle:{
+                    include:{
+                        typeData:true
+                    }
+                }
             }
         });
 
@@ -65,22 +52,13 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
+        const bookingVehicle=parkingRequestData.vehicle.typeData;
 
         // TODO: check balance and security deposits also before booking.
 
         // Check space availablity.
-        let bookingVehicle=vehiclesDetails.parse(parkingRequestData.vehicle);
-        let bookedVehicles=[];
-        parkingRequestData.slot.bookings.forEach((bookingData)=>{
-            let vehicleData=bookingData.vehicle;
-            vehicleData=vehiclesDetails.parse(vehicleData);
-            bookedVehicles.push(vehicleData);
-        });
 
-        let totalSpaceBooked=0;
-        bookedVehicles.forEach((vehicle)=>{
-            totalSpaceBooked+=(vehicle.length*vehicle.breadth);
-        });
+        let totalSpaceBooked=await vehicleUtils.getAllotedArea(parkingRequestData.slotId);
         let totalSpaceofSlot=parkingRequestData.slot.length*parkingRequestData.slot.breadth;
         let availableSpace=totalSpaceofSlot-totalSpaceBooked;
         let requiredSpace=bookingVehicle.length*bookingVehicle.breadth;
@@ -111,47 +89,8 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             }
         });
 
-        // Rechecking bookings before sending update.
-        const bookingsBefore=await prisma.slotBooking.findMany({
-            where:{
-                AND:[
-                    {
-                        slotId:parkingRequestData.slotId,
-                    },
-                    {
-                        time:{
-                            lt:bookingResp.time,
-                        }
-                    },
-                    {
-                        OR:[
-                            {
-                                status:1
-                            },
-                            {
-                                status:1
-                            }
-                        ]
-                    }
-                ]
-            },
-            include:{
-                vehicle:true
-            }
-        });
-        
         // Checking for space again.
-        bookedVehicles=[];
-        bookingsBefore.forEach((bookingData)=>{
-            let vehicleData=bookingData.vehicle;
-            vehicleData=vehiclesDetails.parse(vehicleData);
-            bookedVehicles.push(vehicleData);
-        });
-
-        totalSpaceBooked=0;
-        bookedVehicles.forEach((vehicle)=>{
-            totalSpaceBooked+=(vehicle.length*vehicle.breadth);
-        });
+        totalSpaceBooked=await vehicleUtils.getAllotedArea(parkingRequestData.slotId, bookingResp.time);
         availableSpace=totalSpaceofSlot-totalSpaceBooked;
         if(availableSpace<requiredSpace){
             // If Space is less than booking has been made before that.

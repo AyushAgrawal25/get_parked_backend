@@ -38,16 +38,36 @@ router.get("/", tokenUtils.verify, async (req, res) => {
             }
         });
 
-        const balance=await transactionUtils.walletBalance(userData.id);
+        const walletBalance=await transactionUtils.walletBalance(userData.id);
+        const vaultBalance=await transactionUtils.vaultBalance(userData.id);
+
+        res.statusCode=txnsGetStatus.success.code;
         res.json({
-            walletBalance:balance,
-            transactions:txns
+            walletBalance:walletBalance,
+            vaultBalance:vaultBalance,
+            transactions:txns,
+            message:txnsGetStatus.success.message
         });
     } catch (error) {
         console.log(error);
-        res.json(error);
+        res.statusCode=txnsGetStatus.serverError.code;
+        res.json({
+            message:txnsGetStatus.serverError.message,
+            error:error
+        });
     }
 });
+
+const txnsGetStatus={
+    success:{
+        code:200,
+        message:"Transactions fetched successfully..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
 
 router.get("/realTransactionCode", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;

@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client')
 
 const appRoute = require('./routes/appRoutes/appRoutes.js');
 const imagesRoute = require('./routes/images/imagesRoute');
+const vehicleUtils = require('./routes/appRoutes/vehicles/vehicleUtils.js');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -29,5 +30,6 @@ app.use('/images', imagesRoute);
 
 var server = app.listen(+port, () => {
     console.log("Server is running...");
-    console.log(name + " " + port)
+    console.log(name + " " + port);
+    vehicleUtils.init();
 });

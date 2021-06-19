@@ -21,7 +21,7 @@ model User {
   status           Int
   userDetails      UserDetails?
   userNotification UserNotification?
-  slot            Slot?
+  slot             Slot?
 
   parkingRequests             SlotParkingRequest[]
   bookings                    SlotBooking[]
@@ -117,9 +117,13 @@ enum SlotSpaceType {
 }
 
 model SlotVehicle {
-  id     Int         @id @default(autoincrement())
-  slot   Slot?       @relation(fields: [slotId], references: [id])
+  id     Int   @id @default(autoincrement())
+  slot   Slot? @relation(fields: [slotId], references: [id])
   slotId Int
+
+  typeData SlotVehicleTypeData @relation(fields: [typeId], references: [id])
+  typeId   Int
+
   type   VehicleType
   fair   Float       @db.Double
   status Int
@@ -129,6 +133,20 @@ model SlotVehicle {
   parkings          SlotParking[]
   slotRatingReviews SlotRatingReview[]
   @@map("slot_vehicles")
+}
+
+model SlotVehicleTypeData {
+  id      Int         @id @default(autoincrement())
+  name    String
+  length  Float       @db.Double
+  breadth Float       @db.Double
+  height  Float       @db.Double
+  area    Float       @db.Double
+  type    VehicleType
+  status  Int
+
+  vehicles SlotVehicle[]
+  @@map("slot_vehicles_master")
 }
 
 enum VehicleType {
@@ -184,16 +202,16 @@ model SlotBooking {
   exceedDuration Int @default(0)
 
   //Transactions
-  fromUserToSlotTransaction Transaction? @relation(name: "FromUserToSlot_Transaction", fields: [fromUserToSlotTransactionId], references: [id])
+  fromUserToSlotTransaction   Transaction? @relation(name: "FromUserToSlot_Transaction", fields: [fromUserToSlotTransactionId], references: [id])
   fromUserToSlotTransactionId Int?
 
-  fromSlotToUserTransaction Transaction? @relation(name: "FromSlotToUser_Transaction", fields: [fromSlotToUserTransactionId], references: [id])
+  fromSlotToUserTransaction   Transaction? @relation(name: "FromSlotToUser_Transaction", fields: [fromSlotToUserTransactionId], references: [id])
   fromSlotToUserTransactionId Int?
 
-  fromSlotToAppTransaction Transaction? @relation(name: "FromSlotToApp_Transaction", fields: [fromSlotToAppTransactionId], references: [id])
+  fromSlotToAppTransaction   Transaction? @relation(name: "FromSlotToApp_Transaction", fields: [fromSlotToAppTransactionId], references: [id])
   fromSlotToAppTransactionId Int?
 
-  fromAppToSlotTransaction Transaction? @relation(name: "FromAppToSlot_Transaction", fields: [fromAppToSlotTransactionId], references: [id])
+  fromAppToSlotTransaction   Transaction? @relation(name: "FromAppToSlot_Transaction", fields: [fromAppToSlotTransactionId], references: [id])
   fromAppToSlotTransactionId Int?
 
   status Int
@@ -299,11 +317,11 @@ model Transaction {
   fromUserTransactionRequest TransactionRequests? @relation(name: "FromUserTransaction")
   withUserTransactionRequest TransactionRequests? @relation(name: "WithUserTransaction")
 
-  fromUserToSlot_booking SlotBooking ? @relation(name:"FromUserToSlot_Transaction")
-  fromSlotToUser_booking SlotBooking ? @relation(name:"FromSlotToUser_Transaction")
-  fromSlotToApp_booking SlotBooking ? @relation(name:"FromSlotToApp_Transaction")
-  fromAppToSlot_booking SlotBooking ? @relation(name:"FromAppToSlot_Transaction")
-  
+  fromUserToSlot_booking SlotBooking? @relation(name: "FromUserToSlot_Transaction")
+  fromSlotToUser_booking SlotBooking? @relation(name: "FromSlotToUser_Transaction")
+  fromSlotToApp_booking  SlotBooking? @relation(name: "FromSlotToApp_Transaction")
+  fromAppToSlot_booking  SlotBooking? @relation(name: "FromAppToSlot_Transaction")
+
   @@map("transactions")
 }
 

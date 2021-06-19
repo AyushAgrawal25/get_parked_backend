@@ -5,6 +5,7 @@ const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType
 const slotUtils = require('../slotUtils');
 const userUtils = require('../../users/userUtils');
 const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
+const vehicleUtils = require('../../vehicles/vehicleUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();

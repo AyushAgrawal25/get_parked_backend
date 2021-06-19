@@ -4,7 +4,7 @@ const { PrismaClient, SlotSpaceType } = require('@prisma/client');
 
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const stringUtils = require('./../../../services/operations/stringUtils');
-const vehiclesDetails = require('../../../services/vehicles/vehiclesDetails');
+const vehicleUtils = require('./../vehicles/vehicleUtils');
 const slotUtils = require('./slotUtils');
 const userUtils=require('./../users/userUtils');
 
@@ -49,6 +49,7 @@ router.post("/create", tokenUtils.verify, async (req, res) => {
                 let vehicleData = req.body.vehicles[i];
                 vehicleData["slotId"] = slot.id;
                 vehicleData["status"] = 1;
+                vehicleData["typeId"]=vehicleUtils.getType(req.body.vehicles[i].type).typeId;
                 vehiclesData.push(vehicleData);
             }
 
@@ -103,7 +104,11 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
                 userId: userData.id
             },
             include: {
-                vehicles: true,
+                vehicles: {
+                    include:{
+                        typeData:true,
+                    }
+                },
                 slotImages: true
             },
         });
@@ -120,11 +125,6 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
 
             slot["images"] = slot["SlotImages"];
             slot["SlotImages"] = undefined;
-
-            // Important when u send vehicles data.
-            slot["vehicles"].forEach((vehicle) => {
-                vehiclesDetails.parse(vehicle);
-            });
 
             res.statusCode = parkingLordGetStatus.success.code;
             res.json({

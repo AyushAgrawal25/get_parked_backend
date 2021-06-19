@@ -85,9 +85,38 @@ async function walletBalance(userId){
     return addTxns._sum.amount-removeTxns._sum.amount;
 }
 
+async function vaultBalance(userId){
+    const addTxns=await prisma.transaction.aggregate({
+        _sum:{
+            amount:true,
+        },
+        where:{
+            userId:parseInt(userId),
+            accountType:UserAccountType.Slot,
+            transferType: MoneyTransferType.Add,
+            status:1
+        }
+    });
+
+    const removeTxns=await prisma.transaction.aggregate({
+        _sum:{
+            amount:true,
+        },
+        where:{
+            userId:parseInt(userId),
+            accountType:UserAccountType.Slot,
+            transferType: MoneyTransferType.Remove,
+            status:1
+        }
+    });
+
+    return addTxns._sum.amount-removeTxns._sum.amount;
+}
+
 module.exports={
     getTransactionData,
     getTransactionCode,
     generateTransactionRefId,
-    walletBalance
+    walletBalance,
+    vaultBalance
 }
