@@ -95,7 +95,6 @@ const slotCreateStatus = {
     }
 }
 
-// TODO: get parking lord function.
 router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
@@ -112,7 +111,6 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
         });
 
         if (slot) {
-            //TODO: Add Ratings..
             const ratings = await prisma.slotRatingReview.aggregate({
                 _avg: {
                     ratingValue: true,

@@ -9,6 +9,7 @@ const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
 const vehicleUtils = require('../../vehicles/vehicleUtils');
 const stringUtils = require('../../../../services/operations/stringUtils');
 const bookingUtils = require('./bookingUtils');
+const adminUtils = require('../../../../services/admin/adminUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -238,8 +239,7 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
                 amount:totalAmt.slotToApp,
                 transferType:MoneyTransferType.Add,
                 type:TransactionType.NonReal,
-                // TODO: Change Admin User Id value
-                userId: 1,
+                userId: adminUtils.details.id,
                 status:1
             }
         });
@@ -301,8 +301,7 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
                 transferType:MoneyTransferType.Remove,
                 type:TransactionNonRealType.SlotBookings,
                 withAccountType:UserAccountType.Admin,
-                // TODO: Change Admin User Id value
-                withUserId:1,
+                withUserId:adminUtils.details.id,
                 transactionId:slotToAppTxn.id,
                 status:1
             }
@@ -312,8 +311,7 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
             data:{
                 amount:totalAmt.slotToApp,
                 fromAccountType:UserAccountType.Admin,
-                // TODO: Change Admin User Id value
-                fromUserId:1,
+                fromUserId:adminUtils.details.id,
                 refCode:slotAppRefCode,
                 transferType:MoneyTransferType.Add,
                 type:TransactionNonRealType.SlotBookings,
