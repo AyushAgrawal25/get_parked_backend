@@ -29,7 +29,22 @@ app.get("/", async (req, res) => {
 app.use('/app', appRoute);
 app.use('/images', imagesRoute);
 
-var server = app.listen(+port, () => {
+// var server = app.
+const server=require('http').createServer(app);
+global.io = require('socket.io')(server, {
+    cors:{
+        origin:['http://localhost:5000/']
+    },
+    
+});
+
+global.io.on('connection', (socket) => { 
+    // This way you can call any socket from any where.
+    // global.io.sockets.sockets.get(socket.id).emit("transaction-update", {"fuck":"socket id "+socket.id});
+    console.log(socket.id);
+});
+
+server.listen(+port, () => {
     console.log("Server is running...");
     console.log(name + " " + port);
     vehicleUtils.init();
