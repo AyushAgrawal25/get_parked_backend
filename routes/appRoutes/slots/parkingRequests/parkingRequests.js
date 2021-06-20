@@ -193,7 +193,9 @@ router.get('/forUser', tokenUtils.verify, async(req, res)=>{
                 user:{
                     select:userUtils.selection
                 },
-                vehicle:true,
+                vehicle:{
+                    select:vehicleUtils.selectionWithTypeData
+                },
                 booking:{
                     include:{
                         parking:true,
@@ -254,7 +256,9 @@ router.get('/forSlot', tokenUtils.verify, async(req, res)=>{
                 user:{
                     select:userUtils.selection
                 },
-                vehicle:true,
+                vehicle:{
+                    select:vehicleUtils.selectionWithTypeData
+                },
                 booking:{
                     include:{
                         parking:true,

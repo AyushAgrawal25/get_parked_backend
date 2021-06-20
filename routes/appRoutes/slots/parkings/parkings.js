@@ -8,6 +8,7 @@ const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
 const stringUtils = require('../../../../services/operations/stringUtils');
 const bookingUtils = require('./../bookings/bookingUtils');
 const transactionUtils = require('./../../transactions/transactionUtils');
+const vehicleUtils = require('../../vehicles/vehicleUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -27,7 +28,9 @@ router.post("/park", tokenUtils.verify, async(req, res)=>{
                 user:{
                     select:userUtils.selection
                 },
-                vehicle:true
+                vehicle:{
+                    select:vehicleUtils.selectionWithTypeData
+                }
             }
         });
 
@@ -137,7 +140,9 @@ router.post("/withdraw", tokenUtils.verify, async(req, res)=>{
                 user:{
                     select:userUtils.selection
                 },
-                vehicle:true,
+                vehicle:{
+                    select:vehicleUtils.selectionWithTypeData
+                },
             }
         });
 
@@ -201,7 +206,7 @@ router.post("/withdraw", tokenUtils.verify, async(req, res)=>{
                 transferType:MoneyTransferType.Add,
                 type:TransactionType.NonReal,
                 // TODO: Change Admin User Id value
-                userId: 2,
+                userId: 1,
                 status:1
             }
         });
@@ -264,7 +269,7 @@ router.post("/withdraw", tokenUtils.verify, async(req, res)=>{
                 type:TransactionNonRealType.SlotBookings,
                 withAccountType:UserAccountType.Admin,
                 // TODO: Change Admin User Id value
-                withUserId:2,
+                withUserId:1,
                 transactionId:slotToAppTxn.id,
                 status:1
             }
@@ -275,7 +280,7 @@ router.post("/withdraw", tokenUtils.verify, async(req, res)=>{
                 amount:totalAmt.slotToApp,
                 fromAccountType:UserAccountType.Admin,
                 // TODO: Change Admin User Id value
-                fromUserId:2,
+                fromUserId:1,
                 refCode:slotAppRefCode,
                 transferType:MoneyTransferType.Add,
                 type:TransactionNonRealType.SlotBookings,

@@ -165,8 +165,16 @@ async function getAllotedArea(slotId, time){
 
 module.exports = {
     getTypesData: getVehicleTypeDatas,
-    parse: parseVehicleData,
     init: initVehiclesTypeData,
     getType,
-    getAllotedArea
+    getAllotedArea,
+    selectionWithTypeData:{
+        id:true,
+        fair:true,
+        slotId:true,
+        typeData:true,
+        type:true,
+        typeId:true,
+        status:true
+    }
 }

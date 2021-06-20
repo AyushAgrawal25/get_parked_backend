@@ -105,9 +105,7 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
             },
             include: {
                 vehicles: {
-                    include:{
-                        typeData:true,
-                    }
+                    select:vehicleUtils.selectionWithTypeData
                 },
                 slotImages: true
             },

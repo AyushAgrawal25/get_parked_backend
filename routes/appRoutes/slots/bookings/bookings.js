@@ -29,9 +29,7 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
                     }
                 },
                 vehicle:{
-                    include:{
-                        typeData:true
-                    }
+                    select:vehicleUtils.selectionWithTypeData
                 }
             }
         });
@@ -63,7 +61,7 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
         let availableSpace=totalSpaceofSlot-totalSpaceBooked;
         let requiredSpace=bookingVehicle.length*bookingVehicle.breadth;
         
-        if(availableSpace<requiredSpace){
+        if((availableSpace<requiredSpace)&&(parkingRequestData.slot.height>=bookingVehicle.height)){
             // TODO: send notification
             // TODO: update sockets
             
@@ -241,7 +239,7 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
                 transferType:MoneyTransferType.Add,
                 type:TransactionType.NonReal,
                 // TODO: Change Admin User Id value
-                userId: 2,
+                userId: 1,
                 status:1
             }
         });
@@ -304,7 +302,7 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
                 type:TransactionNonRealType.SlotBookings,
                 withAccountType:UserAccountType.Admin,
                 // TODO: Change Admin User Id value
-                withUserId:2,
+                withUserId:1,
                 transactionId:slotToAppTxn.id,
                 status:1
             }
@@ -315,7 +313,7 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
                 amount:totalAmt.slotToApp,
                 fromAccountType:UserAccountType.Admin,
                 // TODO: Change Admin User Id value
-                fromUserId:2,
+                fromUserId:1,
                 refCode:slotAppRefCode,
                 transferType:MoneyTransferType.Add,
                 type:TransactionNonRealType.SlotBookings,
