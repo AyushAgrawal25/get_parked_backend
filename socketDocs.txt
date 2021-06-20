@@ -1,0 +1,23 @@
+Sockets
+    slots
+        Node: each slotId works as a room for each slot
+            Each user can join to any slot room they want.
+            Only the slot room will be updated on the basis of slot updates.
+
+    This way you can call any socket from any where.
+    global.io.sockets.sockets.get(socket.id).emit("transaction-update", {"fuck":"socket id "+socket.id});
+
+    This way you can call any room from any where
+    global.io.to("room123").emit("room-test", {
+        "data":"You nailed it..."
+    });
+        
+
+    Users 
+        Note: each user is mapped to some sockets using its user id
+            and that global map is used for updating users about the changes.
+
+        userData:{
+            'authorization':'token'
+        }
+

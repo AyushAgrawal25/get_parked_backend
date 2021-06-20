@@ -45,10 +45,29 @@ const verifyToken=function(req, res, next){
     }
 }
 
+function getTokenData(token){
+    if(!token){
+        return null;
+    }
+
+    const data=jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const timeDiff=Date.now()-(new Date(data.generated_at));
+    if(timeDiff>MAX_TIME_DIFFERENCE){
+        res.statusCode=usc.invalidToken.code;
+        res.json({
+            message:usc.invalidToken.message
+        });
+        return null;
+    }
+
+    return data;
+}
+
 const MAX_TIME_DIFFERENCE=1296000000;
 const AUTHORIZATION_TOKEN="authorization";
 module.exports={
     generate:generateToken,
     verify:verifyToken,
-    AUTHORIZATION_TOKEN:AUTHORIZATION_TOKEN
+    AUTHORIZATION_TOKEN:AUTHORIZATION_TOKEN,
+    getData:getTokenData
 }

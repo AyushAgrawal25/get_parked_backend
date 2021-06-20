@@ -175,6 +175,13 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
             });
             return;
         }
+        
+        // TODO: create like this...
+        // const tmpData={
+        //     walletAmout:await transactionUtils.walletBalance(userData.id),
+        //     vaultAmount:await transactionUtils.vaultBalance(userData.id)
+        // }
+        // global.io.to("user_"+userData.id).emit("transaction-update", tmpData);
 
         res.statusCode = realTxnPostStatus.success.code;
         res.json({

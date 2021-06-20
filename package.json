@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@prisma/client": "^2.23.0",
+    "@socket.io/admin-ui": "^0.2.0",
     "aws-sdk": "^2.921.0",
     "compress-images": "^1.9.9",
     "cors": "^2.8.5",
