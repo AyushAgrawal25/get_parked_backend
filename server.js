@@ -13,6 +13,15 @@ const app = express();
 const args = parseArgs(process.argv.slice(2));
 const { name = 'default', port = '5000' } = args;
 
+const server=require('http').createServer(app);
+
+// Sockets
+const io = require('socket.io')(server, {
+    cors:{
+        origin:['http://localhost:5000/']
+    },
+});
+
 //Adding services
 app.use(cors());
 app.use(express.json());
@@ -20,8 +29,12 @@ app.use(express.json());
 app.get("/", async (req, res) => {
     try {
         res.json("Running... this is the name : " + name + ".");
+        io.to("room123").emit("room-test", {
+            "data":"You nailed it..."
+        });
     }
     catch (excp) {
+        console.log(excp);
         res.json(excp);
     }
 });
@@ -29,7 +42,6 @@ app.get("/", async (req, res) => {
 app.use('/app', appRoute);
 app.use('/images', imagesRoute);
 
-const server=require('http').createServer(app);
 server.listen(+port, () => {
     console.log("Server is running...");
     console.log(name + " " + port);
@@ -37,15 +49,10 @@ server.listen(+port, () => {
     adminUtils.init();
 });
 
-// Sockets
-global.io = require('socket.io')(server, {
-    cors:{
-        origin:['http://localhost:5000/']
-    },
-});
 
-global.io.on('connection', (socket) => { 
+io.on('connection', (socket) => { 
     socket.on('join-user-stream', async function (userAuth) {
+        socket.join("room123");
         socketUtils.joinUserStream(socket, userAuth);
     });
 
