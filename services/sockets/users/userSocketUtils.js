@@ -10,16 +10,11 @@ async function joinUserStream(socket, userAuth){
         socket.disconnect();
         return;
     }
-
-    const tokenData=tokenUtils.getData(userAuth[tokenUtils.AUTHORIZATION_TOKEN]);
-    if(!tokenData){
-        socket.disconnect();
-        return;
-    }
+    
     const userData=await prisma.user.findFirst({
         where:{
-            id: tokenData.id,
-            email:tokenData.email,
+            id: userAuth.id,
+            email:userAuth.email,
         }
     });
 

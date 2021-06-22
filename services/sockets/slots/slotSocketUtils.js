@@ -1,8 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const slotUtils = require('../../../routes/appRoutes/slots/slotUtils');
 const vehicleUtils = require('../../../routes/appRoutes/vehicles/vehicleUtils');
+const bookingUtils=require('./../../../routes/appRoutes/slots/bookings/bookingUtils');
 
 const tokenUtils = require('./../../tokenUtils/tokenUtils');
+const ioUtils=require('./../ioUtils');
 
 const prisma = new PrismaClient();
 
@@ -63,12 +65,30 @@ async function onChangeCameraPosition(socket, data){
         return;
     }
 
+    const slotsUpdateFns=[];
     slots.forEach((slot)=>{
-        socket.join("slot_"+slot.id);
-        // console.log("slot_"+slot.id);
+        const slotUpdate=new Promise(async(resolve)=>{
+            const slotAllotedSpace=await vehicleUtils.getAllotedArea(slot.id);
+            const availableSpace=slot.length*slot.breadth-slotAllotedSpace;
+            slot["availableSpace"]=availableSpace;
+            // console.log(slot);
+
+            socket.join("slot_"+slot.id);
+            socket.emit("slots-update", [slot]);
+            // console.log("slot_"+slot.id);
+        });
+
+        slotsUpdateFns.push(slotUpdate);
     });
 
-    socket.emit('slots-update', slots);
+    await Promise.all(slotsUpdateFns);
+    // console.log("Updated....");
+
+    // slots.forEach((slot)=>{
+    //     // console.log("slot_"+slot.id);
+    // });
+
+    // socket.emit('slots-update', slots);
 }
 
 module.exports={

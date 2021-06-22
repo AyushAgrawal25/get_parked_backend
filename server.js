@@ -9,6 +9,8 @@ const adminUtils = require('./services/admin/adminUtils.js');
 const ioUtils = require('./services/sockets/ioUtils');
 const slotSocketUtils = require('./services/sockets/slots/slotSocketUtils');
 const userSocketUtils = require('./services/sockets/users/userSocketUtils');
+const { AUTHORIZATION_TOKEN } = require('./services/tokenUtils/tokenUtils.js');
+const tokenUtils = require('./services/tokenUtils/tokenUtils.js');
 
 const app = express();
 const args = parseArgs(process.argv.slice(2));
@@ -45,13 +47,21 @@ server.listen(+port, () => {
     vehicleUtils.init();
     adminUtils.init();
 });
-
+io.use((socket, next)=>{
+    const token = socket.handshake.auth[AUTHORIZATION_TOKEN];
+    const authData=tokenUtils.getData(token);
+    if(!authData){
+        socket.disconnect();
+    }
+    userSocketUtils.joinUserStream(socket, authData);
+    next();
+});
 
 io.on('connection', (socket) => { 
-    socket.on('join-user-stream', async function (userAuth) {
-        socket.join("room123");
-        userSocketUtils.joinUserStream(socket, userAuth);
-    });
+    // socket.on('join-user-stream', async function (userAuth) {
+    //     console.log(socket.handshake);
+    //     socket.join("room123");
+    // });
 
     socket.on('CameraPosition-change', async function (data) {
         slotSocketUtils.onChangeCameraPosition(socket, data);
