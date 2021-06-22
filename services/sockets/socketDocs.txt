@@ -5,17 +5,20 @@ Sockets
             Only the slot room will be updated on the basis of slot updates.
 
     This way you can call any socket from any where.
-    global.io.sockets.sockets.get(socket.id).emit("transaction-update", {"fuck":"socket id "+socket.id});
+    ioUtils.get().sockets.sockets.get(socket.id).emit("transaction-update", {"fuck":"socket id "+socket.id});
 
     This way you can call any room from any where
-    global.io.to("room123").emit("room-test", {
+    ioUtils.get().to("room123").emit("room-test", {
         "data":"You nailed it..."
     });
         
 
     Users 
-        Note: each user is mapped to some sockets using its user id
-            and that global map is used for updating users about the changes.
+        Now each user is in its own room
+        room name: "user_1" where 1 is id of the user.
+        ioUtils.get().to("user_1").emit("event-name", {
+            "data":"event data"
+        });
 
         userData:{
             'authorization':'token'

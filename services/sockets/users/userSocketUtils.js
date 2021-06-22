@@ -1,6 +1,7 @@
-const { PrismaClient } = require('@prisma/client')
+const { PrismaClient } = require('@prisma/client');
+const ioUtils = require('../ioUtils');
 
-const tokenUtils = require('./../tokenUtils/tokenUtils');
+const tokenUtils = require('./../../tokenUtils/tokenUtils');
 
 const prisma = new PrismaClient();
 

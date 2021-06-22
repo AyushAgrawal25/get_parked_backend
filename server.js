@@ -6,8 +6,9 @@ const appRoute = require('./routes/appRoutes/appRoutes.js');
 const imagesRoute = require('./routes/images/imagesRoute');
 const vehicleUtils = require('./routes/appRoutes/vehicles/vehicleUtils.js');
 const adminUtils = require('./services/admin/adminUtils.js');
-const socketUtils = require('./services/sockets/socketUtils');
-const socketSlotUtils = require('./services/sockets/slots/socketSlotUtils');
+const ioUtils = require('./services/sockets/ioUtils');
+const slotSocketUtils = require('./services/sockets/slots/slotSocketUtils');
+const userSocketUtils = require('./services/sockets/users/userSocketUtils');
 
 const app = express();
 const args = parseArgs(process.argv.slice(2));
@@ -16,12 +17,7 @@ const { name = 'default', port = '5000' } = args;
 const server=require('http').createServer(app);
 
 // Sockets
-const io = require('socket.io')(server, {
-    cors:{
-        // origin:['http://localhost:5000/']
-        origin:"*"
-    },
-});
+const io = ioUtils.init(server);
 
 //Adding services
 app.use(cors());
@@ -30,7 +26,7 @@ app.use(express.json());
 app.get("/", async (req, res) => {
     try {
         res.json("Running... this is the name : " + name + ".");
-        io.to("room123").emit("room-test", {
+        ioUtils.get().to("room123").emit("room-test", {
             "data":"You nailed it..."
         });
     }
@@ -53,11 +49,11 @@ server.listen(+port, () => {
 
 io.on('connection', (socket) => { 
     socket.on('join-user-stream', async function (userAuth) {
-        // socket.join("room123");
-        socketUtils.joinUserStream(socket, userAuth);
+        socket.join("room123");
+        userSocketUtils.joinUserStream(socket, userAuth);
     });
 
     socket.on('CameraPosition-change', async function (data) {
-        socketSlotUtils.onChangeCameraPosition(socket, data);
+        slotSocketUtils.onChangeCameraPosition(socket, data);
     });
 });

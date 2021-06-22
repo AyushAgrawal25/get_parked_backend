@@ -181,7 +181,7 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
         //     walletAmout:await transactionUtils.walletBalance(userData.id),
         //     vaultAmount:await transactionUtils.vaultBalance(userData.id)
         // }
-        // global.io.to("user_"+userData.id).emit("transaction-update", tmpData);
+        // ioUtils.get().to("user_"+userData.id).emit("transaction-update", tmpData);
 
         res.statusCode = realTxnPostStatus.success.code;
         res.json({
