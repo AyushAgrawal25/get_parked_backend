@@ -28,6 +28,7 @@ async function joinUserStream(socket, userAuth){
     }            
     
     socket.join('user_'+userData.id);
+    console.log('user_'+userData.id);
 }
 
 module.exports={

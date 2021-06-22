@@ -18,7 +18,8 @@ const server=require('http').createServer(app);
 // Sockets
 const io = require('socket.io')(server, {
     cors:{
-        origin:['http://localhost:5000/']
+        // origin:['http://localhost:5000/']
+        origin:"*"
     },
 });
 
@@ -52,7 +53,7 @@ server.listen(+port, () => {
 
 io.on('connection', (socket) => { 
     socket.on('join-user-stream', async function (userAuth) {
-        socket.join("room123");
+        // socket.join("room123");
         socketUtils.joinUserStream(socket, userAuth);
     });
 
