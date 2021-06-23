@@ -9,7 +9,6 @@ const adminUtils = require('./services/admin/adminUtils.js');
 const ioUtils = require('./services/sockets/ioUtils');
 const slotSocketUtils = require('./services/sockets/slots/slotSocketUtils');
 const userSocketUtils = require('./services/sockets/users/userSocketUtils');
-const { AUTHORIZATION_TOKEN } = require('./services/tokenUtils/tokenUtils.js');
 const tokenUtils = require('./services/tokenUtils/tokenUtils.js');
 
 const app = express();
@@ -28,9 +27,6 @@ app.use(express.json());
 app.get("/", async (req, res) => {
     try {
         res.json("Running... this is the name : " + name + ".");
-        ioUtils.get().to("room123").emit("room-test", {
-            "data":"You nailed it..."
-        });
     }
     catch (excp) {
         console.log(excp);
@@ -48,21 +44,19 @@ server.listen(+port, () => {
     adminUtils.init();
 });
 io.use((socket, next)=>{
-    const token = socket.handshake.auth[AUTHORIZATION_TOKEN];
+    const token = socket.handshake.auth[tokenUtils.AUTHORIZATION_TOKEN];
     const authData=tokenUtils.getData(token);
     if(!authData){
+        console.log("Denying... 1");
         socket.disconnect();
     }
+    // Add it to user stream.
     userSocketUtils.joinUserStream(socket, authData);
     next();
 });
 
 io.on('connection', (socket) => { 
-    // socket.on('join-user-stream', async function (userAuth) {
-    //     console.log(socket.handshake);
-    //     socket.join("room123");
-    // });
-
+    socket.join("room123");
     socket.on('CameraPosition-change', async function (data) {
         slotSocketUtils.onChangeCameraPosition(socket, data);
     });

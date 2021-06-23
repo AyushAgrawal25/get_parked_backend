@@ -10,6 +10,7 @@ const vehicleUtils = require('../../vehicles/vehicleUtils');
 const stringUtils = require('../../../../services/operations/stringUtils');
 const bookingUtils = require('./bookingUtils');
 const adminUtils = require('../../../../services/admin/adminUtils');
+const parkingSocketUtils=require('./../../../../services/sockets/parkings/parkingSocketUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -64,7 +65,6 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
         
         if((availableSpace<requiredSpace)&&(parkingRequestData.slot.height>=bookingVehicle.height)){
             // TODO: send notification
-            // TODO: update sockets
             
             res.statusCode=bookingStatus.spaceUnavailable.code;
             res.json({
@@ -101,7 +101,6 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             });
 
             // TODO: send notification
-            // TODO: update sockets
 
             res.statusCode=bookingStatus.spaceUnavailable.code;
             res.json({
@@ -120,7 +119,13 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
         });        
 
         // TODO: send notification
-        // TODO: update sockets
+        
+        // Update sockets
+        parkingSocketUtils.updateParkingLord(parkingRequestData.slot.userId, parkingRequestData.id);
+        parkingSocketUtils.updateUser(parkingRequestData.userId, parkingRequestData.id);
+
+        // TODO: Update slot sockets too.
+
         res.statusCode=bookingStatus.success.code;
         res.json({
             data:bookingResp,
@@ -396,7 +401,16 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
+
+        // Update sockets
+        parkingSocketUtils.updateParkingLord(bookingData.slot.userId, bookingData.parkingRequestId);
+        parkingSocketUtils.updateUser(bookingData.userId, bookingData.parkingRequestId);
+
+        // TODO: Update slot sockets too.
+        
+        res.statusCode=bookingCancellationStatus.success.code;
         res.json({
+            message:bookingCancellationStatus.success.message,
             data:updateBooking
         });
     } catch (error) {

@@ -6,6 +6,7 @@ const slotUtils = require('../slotUtils');
 const userUtils = require('../../users/userUtils');
 const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
 const vehicleUtils = require('../../vehicles/vehicleUtils');
+const parkingSocketUtils=require('../../../../services/sockets/parkings/parkingSocketUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -34,7 +35,10 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
         });
 
         if (parkingReq) {
-            //TODO: Update Sockets Using this Data.
+            //Update Sockets Using this Data.
+            parkingSocketUtils.updateParkingLord(parkingReq.slot.userId, parkingReq.id);
+            parkingSocketUtils.updateUser(parkingReq.userId, parkingReq.id);
+
             //TODO: Send notifications.
 
             let respData = parkingReq;
@@ -128,7 +132,10 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
         });
 
         if (parkingReqUpdate) {
-            //TODO: Update Sockets Using this Data.
+            //Update Sockets Using this Data.
+            parkingSocketUtils.updateParkingLord(parkingReqUpdate.slot.userId, parkingReqUpdate.id);
+            parkingSocketUtils.updateUser(parkingReqUpdate.userId, parkingReqUpdate.id);
+
             //TODO: Send notifications.
             
             let respData=parkingReqUpdate;

@@ -8,7 +8,7 @@ Sockets
     ioUtils.get().sockets.sockets.get(socket.id).emit("transaction-update", {"fuck":"socket id "+socket.id});
 
     This way you can call any room from any where
-    ioUtils.get().to("room123").emit("room-test", {
+    ioUtils.emitter().to("room123").emit("room-test", {
         "data":"You nailed it..."
     });
         
@@ -16,9 +16,10 @@ Sockets
     Users 
         Now each user is in its own room
         room name: "user_1" where 1 is id of the user.
-        ioUtils.get().to("user_1").emit("event-name", {
-            "data":"event data"
+        ioUtils.emitter().to('user_1').emit("room-test", {
+            data:"Updated data"
         });
+    
 
         userData:{
             'authorization':'token'
