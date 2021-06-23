@@ -81,6 +81,7 @@ async function updateParkingLord(userId, parkingRequestId){
         });
         console.log("user_"+userId);
         ioUtils.emitter().to("user_"+userId).emit('slot-parking-update', [parkingReqData]);
+        // console.log([parkingReqData]);
     } catch (error) {
         console.log(error);
     }

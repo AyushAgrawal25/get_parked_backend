@@ -11,6 +11,7 @@ const transactionUtils = require('./../../transactions/transactionUtils');
 const vehicleUtils = require('../../vehicles/vehicleUtils');
 const adminUtils = require('../../../../services/admin/adminUtils');
 const parkingSocketUtils = require('./../../../../services/sockets/parkings/parkingSocketUtils');
+const slotSocketUtils = require('./../../../../services/sockets/slots/slotSocketUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -54,18 +55,23 @@ router.post("/park", tokenUtils.verify, async (req, res) => {
         }
 
         const withdrawOTP = stringUtils.generateOTP();
-        const parkingCreate = await prisma.slotParking.create({
-            data: {
-                slotId: bookingData.slotId,
-                userId: bookingData.userId,
-                parkingHours: bookingData.parkingHours,
-                spaceType: bookingData.spaceType,
-                bookingId: bookingData.id,
-                vehicleId: bookingData.vehicleId,
-                withdrawOTP: withdrawOTP,
-                status: 1
-            }
-        });
+        let parkingCreate;
+        try {
+            parkingCreate = await prisma.slotParking.create({
+                data: {
+                    slotId: bookingData.slotId,
+                    userId: bookingData.userId,
+                    parkingHours: bookingData.parkingHours,
+                    spaceType: bookingData.spaceType,
+                    bookingId: bookingData.id,
+                    vehicleId: bookingData.vehicleId,
+                    withdrawOTP: withdrawOTP,
+                    status: 1
+                }
+            });
+        } catch (excp) {
+            console.log("Parkings : Parking Create Block...");
+        }
         if (!parkingCreate) {
             res.statusCode = parkingStatus.serverError.code;
             res.json({
@@ -74,14 +80,19 @@ router.post("/park", tokenUtils.verify, async (req, res) => {
             return;
         }
 
-        const bookingUpdate = await prisma.slotBooking.update({
-            where: {
-                id: bookingData.id
-            },
-            data: {
-                status: 3
-            }
-        });
+        let bookingUpdate;
+        try {
+            bookingUpdate = await prisma.slotBooking.update({
+                where: {
+                    id: bookingData.id
+                },
+                data: {
+                    status: 3
+                }
+            });
+        } catch (error) {
+            console.log("Parkings : Bookings Update Block...");
+        }
 
         if (!bookingUpdate) {
             const delParking = await prisma.slotBooking.delete({
@@ -97,11 +108,12 @@ router.post("/park", tokenUtils.verify, async (req, res) => {
             return;
         }
 
-        //Update Sockets Using this Data.
+        // Update Parking Sockets.
         parkingSocketUtils.updateParkingLord(bookingData.slot.userId, bookingData.parkingRequestId);
         parkingSocketUtils.updateUser(bookingData.userId, bookingData.parkingRequestId);
 
-        // TODO: update slots too.
+        // Update Slots Sockets.
+        slotSocketUtils.updateSlotOnMap(bookingData.slotId);
 
         res.statusCode = parkingStatus.success.code;
         res.json({
@@ -222,7 +234,18 @@ router.post("/withdraw", tokenUtils.verify, async (req, res) => {
             }
         });
 
-        const txnsCreate = await prisma.$transaction([userToSlotTxnCreate, slotToUserTxnCreate, slotToAppTxnCreate, appToSlotTxnCreate]);
+        let txnsCreate;
+        try {
+            txnsCreate = await prisma.$transaction([
+                userToSlotTxnCreate, 
+                slotToUserTxnCreate, 
+                slotToAppTxnCreate, 
+                appToSlotTxnCreate
+            ]);
+        } catch (error) {
+            console.log("Parking Withdraw : Transactions Create Block...");
+            console.log(error);
+        }
         if (!txnsCreate) {
             res.statusCode = parkingWithdrawStatus.serverError.code;
             res.json({
@@ -300,12 +323,18 @@ router.post("/withdraw", tokenUtils.verify, async (req, res) => {
             }
         });
 
-        const nonRealTxns = await prisma.$transaction([
-            userToSlotNonRealTxnCreate,
-            slotToUserNonRealTxnCreate,
-            slotToAppNonRealTxnCreate,
-            appToSlotNonRealTxnCreate,
-        ]);
+        let nonRealTxns;
+        try {
+            nonRealTxns = await prisma.$transaction([
+                userToSlotNonRealTxnCreate,
+                slotToUserNonRealTxnCreate,
+                slotToAppNonRealTxnCreate,
+                appToSlotNonRealTxnCreate,
+            ]);
+        } catch (error) {
+            console.log("Parking Withdraw : Non Real Transactions Block..");
+            console.log(error);
+        }
 
         if (!nonRealTxns) {
             // Deleting Txns 
@@ -351,7 +380,6 @@ router.post("/withdraw", tokenUtils.verify, async (req, res) => {
             }
         });
 
-
         const updateParking = prisma.slotParking.update({
             where: {
                 id: parkingData.id
@@ -361,9 +389,15 @@ router.post("/withdraw", tokenUtils.verify, async (req, res) => {
             }
         });
 
-        const updateBookingParking = await prisma.$transaction([
-            updateBooking, updateParking
-        ]);
+        let updateBookingParking;
+        try {
+            updateBookingParking = await prisma.$transaction([
+                updateBooking, updateParking
+            ]);
+        } catch (error) {
+            console.log("Parking Withdraw : Booking And Parking Update");
+            console.log(error);
+        }
         if (!updateBookingParking) {
             // Deleting Txns 
             const delTxns = await prisma.transaction.deleteMany({
@@ -396,7 +430,10 @@ router.post("/withdraw", tokenUtils.verify, async (req, res) => {
         parkingSocketUtils.updateParkingLord(parkingData.slot.userId, parkingData.booking.parkingRequestId);
         parkingSocketUtils.updateUser(parkingData.userId, parkingData.booking.parkingRequestId);
 
-        // TODO: update slots too.
+        // Update Slots Sockets.
+        slotSocketUtils.updateSlotOnMap(parkingData.slotId);
+
+        // TODO: Update Transactions Sockets.
 
         res.statusCode = parkingWithdrawStatus.success.code;
         res.json({

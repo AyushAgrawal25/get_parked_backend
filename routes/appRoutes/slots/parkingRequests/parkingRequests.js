@@ -114,22 +114,28 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
             return;
         }
         
-        const parkingReqUpdate = await prisma.slotParkingRequest.update({
-            where: {
-                id:parseInt(req.body.parkingRequestId)
-            },
-            data: {
-                status: reqResp
-            },
-            include: {
-                slot: {
-                    include: {
-                        user: true,
-                    }
+        let parkingReqUpdate;
+        try {
+            parkingReqUpdate = await prisma.slotParkingRequest.update({
+                where: {
+                    id:parseInt(req.body.parkingRequestId)
                 },
-                user: true
-            }
-        });
+                data: {
+                    status: reqResp
+                },
+                include: {
+                    slot: {
+                        include: {
+                            user: true,
+                        }
+                    },
+                    user: true
+                }
+            });
+        } catch (error) {
+            console.log("Parking Request Respond : Parking Request Update Status");
+            console.log(error);
+        }
 
         if (parkingReqUpdate) {
             //Update Sockets Using this Data.

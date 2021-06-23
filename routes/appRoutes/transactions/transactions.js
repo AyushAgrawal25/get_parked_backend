@@ -183,6 +183,7 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
         // }
         // ioUtils.get().to("user_"+userData.id).emit("transaction-update", tmpData);
 
+        // TODO: Update Transactions Sockets.
         res.statusCode = realTxnPostStatus.success.code;
         res.json({
             message: realTxnPostStatus.success.message,
@@ -261,7 +262,6 @@ const txnReqPostStatus={
     }
 }
 
-// TODO: Accept transaction request and all.
 router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
     let userData=req.tokenData;
     try {
@@ -340,7 +340,16 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             }
         });
 
-        const txnCreate=await prisma.$transaction([fromTxnCreate, withTxnCreate]);
+        let txnCreate;
+        try {
+            txnCreate=await prisma.$transaction([
+                fromTxnCreate, withTxnCreate
+            ]);
+        } catch (error) {
+            console.log("Transaction Request Respond : Transactions Create Block...");
+            console.log(error);
+        }
+
         if(!txnCreate){
             res.statusCode=txnReqResponseStatus.serverError.code;
             res.json({
@@ -383,7 +392,15 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             }
         });
 
-        const nonRealTxnCreate=await prisma.$transaction([fromTxnNonRealCreate, withTxnNonRealCreate]);
+        let nonRealTxnCreate;
+        try {
+            nonRealTxnCreate=await prisma.$transaction([
+                fromTxnNonRealCreate, withTxnNonRealCreate
+            ]);
+        } catch (error) {
+            console.log("Transaction Request Respond : Non Real Transactions Create...");
+            console.log(error);
+        }
         if(!nonRealTxnCreate){
             // Delete the txns also and show.
             const delTxn=await prisma.transaction.deleteMany({
@@ -440,6 +457,8 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                     ]
                 }
             });
+            
+            // TODO: Update Transactions Sockets.
             
             res.statusCode=txnReqResponseStatus.serverError.code;
             res.json({

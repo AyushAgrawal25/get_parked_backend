@@ -11,6 +11,8 @@ const stringUtils = require('../../../../services/operations/stringUtils');
 const bookingUtils = require('./bookingUtils');
 const adminUtils = require('../../../../services/admin/adminUtils');
 const parkingSocketUtils=require('./../../../../services/sockets/parkings/parkingSocketUtils');
+const slotSocketUtils=require('./../../../../services/sockets/slots/slotSocketUtils');
+const transactionSocketUtils=require('./../../../../services/sockets/transactions/transactionSocketUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -74,19 +76,25 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
         }
 
         let parkingOTP=stringUtils.generateOTP();
-        const bookingResp=await prisma.slotBooking.create({
-            data:{
-                parkingRequestId:parseInt(req.body.parkingRequestId),   
-                duration: 0,
-                spaceType: parkingRequestData.spaceType,
-                parkingHours:parkingRequestData.parkingHours,
-                parkingOTP:parkingOTP,
-                slotId:parkingRequestData.slotId,
-                userId:parkingRequestData.userId,
-                vehicleId:parkingRequestData.vehicleId,
-                status: 1
-            }
-        });
+        let bookingResp;
+        try {
+            bookingResp=await prisma.slotBooking.create({
+                data:{
+                    parkingRequestId:parseInt(req.body.parkingRequestId),   
+                    duration: 0,
+                    spaceType: parkingRequestData.spaceType,
+                    parkingHours:parkingRequestData.parkingHours,
+                    parkingOTP:parkingOTP,
+                    slotId:parkingRequestData.slotId,
+                    userId:parkingRequestData.userId,
+                    vehicleId:parkingRequestData.vehicleId,
+                    status: 1
+                }
+            });
+        } catch (error) {
+            console.log("Bookings : From Booking Block...");
+            console.log(error);
+        }
 
         // Checking for space again.
         totalSpaceBooked=await vehicleUtils.getAllotedArea(parkingRequestData.slotId, bookingResp.time);
@@ -109,22 +117,44 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             return;
         }
         
-        const parkingRequestUpdate=await prisma.slotParkingRequest.update({
-            where:{
-                id:parkingRequestData.id,
-            },
-            data:{
-                status:3
-            }
-        });        
+        let parkingRequestUpdate;
+        try {
+            parkingRequestUpdate=await prisma.slotParkingRequest.update({
+                where:{
+                    id:parkingRequestData.id,
+                },
+                data:{
+                    status:3
+                }
+            }); 
+        } catch (error) {
+            console.log("Slot Booking : Parking Request Update block..");
+            console.log(error);
+        }       
+
+        if(!parkingRequestUpdate){
+            const bookingDel=await prisma.slotBooking.delete({
+                where:{
+                    id:bookingResp.id
+                }
+            });
+
+            res.statusCode=bookingStatus.serverError.code;
+            res.json({
+                message:bookingStatus.serverError.message,
+                error:error
+            });
+            return;
+        }
 
         // TODO: send notification
         
-        // Update sockets
+        // Update Parkings sockets
         parkingSocketUtils.updateParkingLord(parkingRequestData.slot.userId, parkingRequestData.id);
         parkingSocketUtils.updateUser(parkingRequestData.userId, parkingRequestData.id);
 
-        // TODO: Update slot sockets too.
+        // Update Slots sockets.
+        slotSocketUtils.updateSlotOnMap(parkingRequestData.slotId);
 
         res.statusCode=bookingStatus.success.code;
         res.json({
@@ -168,7 +198,6 @@ const bookingStatus={
     }
 }
 
-// TODO: create Cancel booking route.
 router.post('/cancel', tokenUtils.verify, async(req, res)=>{
     const userData=req.tokenData;
     try {
@@ -249,7 +278,19 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
             }
         });
 
-        const txnsCreate=await prisma.$transaction([userToSlotTxnCreate, slotToUserTxnCreate, slotToAppTxnCreate, appToSlotTxnCreate]);
+        let txnsCreate;
+        try {
+            txnsCreate=await prisma.$transaction([
+                userToSlotTxnCreate, 
+                slotToUserTxnCreate, 
+                slotToAppTxnCreate, 
+                appToSlotTxnCreate
+            ]);
+        } catch (error) {
+            console.log("Slot Booking Cancellation : Transactions Create Block...");           
+            console.log(error);
+        }
+
         if(!txnsCreate){
             res.statusCode=bookingCancellationStatus.serverError.code;
             res.json({
@@ -327,12 +368,19 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
             }
         });
 
-        const nonRealTxns=await prisma.$transaction([
-            userToSlotNonRealTxnCreate,
-            slotToUserNonRealTxnCreate,
-            slotToAppNonRealTxnCreate,
-            appToSlotNonRealTxnCreate,
-        ]);
+        let nonRealTxns;
+        try{
+            nonRealTxns=await prisma.$transaction([
+                userToSlotNonRealTxnCreate,
+                slotToUserNonRealTxnCreate,
+                slotToAppNonRealTxnCreate,
+                appToSlotNonRealTxnCreate,
+            ]);
+        }
+        catch(error){
+            console.log("Slot Booking Cancellation : Non Real Transactions Create Block...");           
+            console.log(error);
+        }
 
         if(!nonRealTxns){
             // Deleting Txns 
@@ -361,20 +409,27 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
             return;
         }
 
-        const updateBooking=await prisma.slotBooking.update({
-            where:{
-                id:bookingData.id
-            },
-            data:{
-                status:2,
-                fromUserToSlotTransactionId:userToSlotTxn.id,
-                fromSlotToUserTransactionId:slotToUserTxn.id,
-                fromSlotToAppTransactionId:slotToAppTxn.id,
-                fromAppToSlotTransactionId:appToSlotTxn.id,
-                duration:req.body.duration,
-                exceedDuration:req.body.exceedDuration,
-            }
-        });
+        let updateBooking;
+        try {
+            updateBooking=await prisma.slotBooking.update({
+                where:{
+                    id:bookingData.id
+                },
+                data:{
+                    status:2,
+                    fromUserToSlotTransactionId:userToSlotTxn.id,
+                    fromSlotToUserTransactionId:slotToUserTxn.id,
+                    fromSlotToAppTransactionId:slotToAppTxn.id,
+                    fromAppToSlotTransactionId:appToSlotTxn.id,
+                    duration:req.body.duration,
+                    exceedDuration:req.body.exceedDuration,
+                }
+            });
+        } catch (error) {
+            console.log("Slot Booking Cancellation : Bookings Update Block...");           
+            console.log(error);
+        }
+
         if(!updateBooking){
             // Deleting Txns 
             const delTxns=await prisma.transaction.deleteMany({
@@ -402,11 +457,23 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
             return;
         }
 
-        // Update sockets
-        parkingSocketUtils.updateParkingLord(bookingData.slot.userId, bookingData.parkingRequestId);
-        parkingSocketUtils.updateUser(bookingData.userId, bookingData.parkingRequestId);
+        try {
+            // Update Parkings sockets
+            parkingSocketUtils.updateParkingLord(bookingData.slot.userId, bookingData.parkingRequestId);
+            parkingSocketUtils.updateUser(bookingData.userId, bookingData.parkingRequestId);
 
-        // TODO: Update slot sockets too.
+            // Update Slots sockets too.
+            slotSocketUtils.updateSlotOnMap(bookingData.slotId);
+    
+            // TODO: Update Transactions Sockets.
+            transactionSocketUtils.updateUser(bookingData.userId, userToSlotTxn.id);
+            
+            transactionSocketUtils.updateUser(bookingData.slot.userId, slotToUserTxn.id);
+            transactionSocketUtils.updateUser(bookingData.slot.userId, slotToAppTxn.id);
+        } catch (error) {
+            console.log("Slot Booking Cancellation : Sockets Update Block...");           
+            console.log(error);
+        }
         
         res.statusCode=bookingCancellationStatus.success.code;
         res.json({
