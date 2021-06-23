@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 
 async function joinUserStream(socket, userAuth){
     if(!userAuth){
+        console.log("Denying... 2");
         socket.disconnect();
         return;
     }
@@ -19,6 +20,7 @@ async function joinUserStream(socket, userAuth){
     });
 
     if(!userData){
+        console.log("Denying... 3");
         socket.disconnect();
         return;
     }            

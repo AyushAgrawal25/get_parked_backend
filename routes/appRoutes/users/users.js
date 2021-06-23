@@ -378,7 +378,6 @@ const checkEmailStatus = {
 }
 
 router.get("/getUser", tokenUtils.verify, async (req, res) => {
-    // TODO: complete when user details and profile pictures table created.
     try {
         const tokenUser = req.tokenData;
         const refreshToken = tokenUtils.generate(tokenUser.id, tokenUser.email);

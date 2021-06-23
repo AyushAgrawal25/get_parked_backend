@@ -91,6 +91,31 @@ async function onChangeCameraPosition(socket, data){
     // socket.emit('slots-update', slots);
 }
 
+async function updateSlotOnMap(slotId){
+    try {
+        let slotSelect=slotUtils.selection;
+        slotSelect["vehicles"]={
+            select:vehicleUtils.selectionWithTypeData
+        };
+        const slotData=await prisma.slot.findUnique({
+            where:{
+                id:parseInt(slotId)
+            },
+            select:slotSelect
+        });
+
+        if(!slotData){
+            return;
+        }
+
+        ioUtils.emitter().to("slot_"+slotId).emit("slots-update", [slotData]);
+    } catch (error) {
+        console.log("Update Slots on Map");
+        console.log(error);
+    }
+}
+
 module.exports={
-    onChangeCameraPosition
+    onChangeCameraPosition,
+    updateSlotOnMap
 }
