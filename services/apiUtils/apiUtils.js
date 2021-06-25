@@ -8,7 +8,7 @@ const apiValidation = function (req, res, next) {
         const apiToken = req.headers.apitoken;
         // TODO: create a proper API token for registration type of things.
         // var decryptedToken = cryptoUtils.decryption(apiToken);
-        const decryptedToken = process.env.ENCRYPTION_KEY;
+        const decryptedToken = process.env.UNIVERSAL_API_TOKEN;
         if (apiToken != decryptedToken) {
             res.statusCode = usc.unauthorized.code;
             res.json({
