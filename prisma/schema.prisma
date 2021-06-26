@@ -3,7 +3,7 @@
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:@localhost:3306/prisma_db"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -11,13 +11,396 @@ generator client {
 }
 
 // signUpStatus to confirm that signUp is properly Completed or not.
-// TODO: change it signUpStatus everywhere in the app.
-// TODO: change accessToken to userToken and create managment for accessToken.
+// TODO: set Storage Engine to InnoDB in server also.
 
 model User {
-  id      Int      @default(autoincrement()) @id
-  email   String   @unique @db.VarChar(255)
-  userToken    String @db.VarChar(255)
-  signUpStatus    Int
-  status    Int
+  id               Int               @id @default(autoincrement())
+  email            String?           @unique @db.VarChar(255)
+  userToken        String            @db.VarChar(255)
+  signUpStatus     Int
+  status           Int
+  userDetails      UserDetails?
+  userNotification UserNotification?
+  slot             Slot?
+
+  parkingRequests             SlotParkingRequest[]
+  bookings                    SlotBooking[]
+  parkings                    SlotParking[]
+  slotRatingReviews           SlotRatingReview[]
+  transactions                Transaction[]
+  transactionsReal            TransactionReal[]
+  fromUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionFromUser")
+  withUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionWithUser")
+  fromUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestFromUser")
+  wihtUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestWithUser")
+  @@map("users")
+}
+
+enum UserAccountType {
+  User
+  Slot
+  Admin
+}
+
+model UserDetails {
+  id              Int        @id @default(autoincrement())
+  user            User?      @relation(fields: [userId], references: [id])
+  userId          Int
+  email           String?    @db.VarChar(255)
+  picUrl          String?    @db.VarChar(255)
+  picThumbnailUrl String?    @db.VarChar(255)
+  firstName       String?    @db.VarChar(100)
+  lastName        String?    @db.VarChar(100)
+  dialCode        String?    @db.VarChar(10)
+  phoneNumber     String?    @db.VarChar(15)
+  gender          UserGender
+  status          Int
+
+  @@map("user_details")
+}
+
+enum UserGender {
+  Male
+  Female
+  Others
+}
+
+model UserNotification {
+  id     Int     @id @default(autoincrement())
+  user   User?   @relation(fields: [userId], references: [id])
+  userId Int
+  token  String?
+  status Int
+
+  @@map("user_notifications")
+}
+
+model Slot {
+  id                  Int           @id @default(autoincrement())
+  user                User?         @relation(fields: [userId], references: [id])
+  userId              Int
+  token               String        @db.VarChar(1000)
+  name                String        @db.VarChar(100)
+  address             String        @db.VarChar(200)
+  state               String        @db.VarChar(50)
+  city                String        @db.VarChar(50)
+  pincode             String        @db.VarChar(20)
+  landmark            String        @db.VarChar(200)
+  locationName        String        @db.VarChar(100)
+  country             String        @db.VarChar(50)
+  isoCountryCode      String        @db.VarChar(10)
+  latitude            Float         @db.Double
+  longitude           Float         @db.Double
+  length              Float         @db.Double
+  breadth             Float         @db.Double
+  height              Float         @db.Double
+  startTime           Int
+  endTime             Int
+  spaceType           SlotSpaceType
+  securityDepositTime Int
+  vehicles            SlotVehicle[]
+  status              Int
+
+  parkingRequests   SlotParkingRequest[]
+  bookings          SlotBooking[]
+  parkings          SlotParking[]
+  slotRatingReviews SlotRatingReview[]
+  slotImages        SlotImages[]
+  @@map("slots")
+}
+
+// Space type 1 and 2;
+// 1 shed available and 2 open
+enum SlotSpaceType {
+  Sheded
+  Open
+}
+
+model SlotVehicle {
+  id     Int   @id @default(autoincrement())
+  slot   Slot? @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  typeData SlotVehicleTypeData @relation(fields: [typeId], references: [id])
+  typeId   Int
+
+  type   VehicleType
+  fair   Float       @db.Double
+  status Int
+
+  parkingRequests   SlotParkingRequest[]
+  bookings          SlotBooking[]
+  parkings          SlotParking[]
+  slotRatingReviews SlotRatingReview[]
+  @@map("slot_vehicles")
+}
+
+model SlotVehicleTypeData {
+  id      Int         @id @default(autoincrement())
+  name    String
+  length  Float       @db.Double
+  breadth Float       @db.Double
+  height  Float       @db.Double
+  area    Float       @db.Double
+  type    VehicleType
+  status  Int
+
+  vehicles SlotVehicle[]
+  @@map("slot_vehicles_master")
+}
+
+enum VehicleType {
+  BIKE
+  MINI
+  SEDAN
+  VAN
+  SUV
+}
+
+model SlotParkingRequest {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  time         DateTime      @default(now()) @updatedAt @db.Timestamp(0)
+  spaceType    SlotSpaceType
+  parkingHours Int
+  status       Int
+
+  booking SlotBooking?
+  @@map("slot_parking_requests")
+}
+
+model SlotBooking {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  parkingRequest   SlotParkingRequest @relation(fields: [parkingRequestId], references: [id])
+  parkingRequestId Int
+
+  parkingOTP   String        @default("0000")
+  time         DateTime      @default(now()) @db.Timestamp(0)
+  spaceType    SlotSpaceType
+  parkingHours Int
+
+  duration       Int
+  exceedDuration Int @default(0)
+
+  //Transactions
+  fromUserToSlotTransaction   Transaction? @relation(name: "FromUserToSlot_Transaction", fields: [fromUserToSlotTransactionId], references: [id])
+  fromUserToSlotTransactionId Int?
+
+  fromSlotToUserTransaction   Transaction? @relation(name: "FromSlotToUser_Transaction", fields: [fromSlotToUserTransactionId], references: [id])
+  fromSlotToUserTransactionId Int?
+
+  fromSlotToAppTransaction   Transaction? @relation(name: "FromSlotToApp_Transaction", fields: [fromSlotToAppTransactionId], references: [id])
+  fromSlotToAppTransactionId Int?
+
+  fromAppToSlotTransaction   Transaction? @relation(name: "FromAppToSlot_Transaction", fields: [fromAppToSlotTransactionId], references: [id])
+  fromAppToSlotTransactionId Int?
+
+  status Int
+
+  parking SlotParking?
+  @@map("slot_bookings")
+}
+
+model SlotParking {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  booking   SlotBooking @relation(fields: [bookingId], references: [id])
+  bookingId Int
+
+  withdrawOTP  String        @default("0000")
+  time         DateTime      @default(now()) @db.Timestamp(0)
+  spaceType    SlotSpaceType
+  parkingHours Int
+  status       Int
+
+  slotRatingReview SlotRatingReview?
+  @@map("slot_parkings")
+}
+
+model SlotRatingReview {
+  id Int @id @default(autoincrement())
+
+  slot   Slot @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  parking   SlotParking @relation(fields: [parkingId], references: [id])
+  parkingId Int
+
+  vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  ratingValue Float    @db.Double
+  review      String?  @db.VarChar(1000)
+  time        DateTime @default(now()) @db.Timestamp(0)
+  status      Int
+
+  @@map("slot_ratings_reviews")
+}
+
+model SlotImages {
+  id Int @id @default(autoincrement())
+
+  slot   Slot? @relation(fields: [slotId], references: [id])
+  slotId Int
+
+  type         SlotImageType
+  url          String
+  thumbnailUrl String?
+  status       Int
+
+  @@map("slot_images")
+}
+
+enum SlotImageType {
+  Main
+  Others
+}
+
+enum TransactionType {
+  Real
+  NonReal
+}
+
+enum MoneyTransferType {
+  Add
+  Remove
+}
+
+model Transaction {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  accountType  UserAccountType
+  transferType MoneyTransferType
+  type         TransactionType
+
+  amount Float    @db.Double
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
+
+  transactionReal    TransactionReal?
+  transactionNonReal TransactionNonReal?
+
+  fromUserTransactionRequest TransactionRequests? @relation(name: "FromUserTransaction")
+  withUserTransactionRequest TransactionRequests? @relation(name: "WithUserTransaction")
+
+  fromUserToSlot_booking SlotBooking? @relation(name: "FromUserToSlot_Transaction")
+  fromSlotToUser_booking SlotBooking? @relation(name: "FromSlotToUser_Transaction")
+  fromSlotToApp_booking  SlotBooking? @relation(name: "FromSlotToApp_Transaction")
+  fromAppToSlot_booking  SlotBooking? @relation(name: "FromAppToSlot_Transaction")
+
+  @@map("transactions")
+}
+
+model TransactionReal {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  transactionId Int
+
+  accountType  UserAccountType
+  amount       Float             @db.Double
+  transferType MoneyTransferType
+
+  // UPI reference Code
+  ref String
+
+  // Backened generated reference code.
+  refCode String
+
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
+
+  @@map("transactions_real")
+}
+
+model TransactionNonReal {
+  id Int @id @default(autoincrement())
+
+  transaction   Transaction            @relation(fields: [transactionId], references: [id])
+  transactionId Int
+  type          TransactionNonRealType
+
+  fromUser        User            @relation(name: "NonRealTransactionFromUser", fields: [fromUserId], references: [id])
+  fromUserId      Int
+  fromAccountType UserAccountType
+
+  withUser        User            @relation(name: "NonRealTransactionWithUser", fields: [withUserId], references: [id])
+  withUserId      Int
+  withAccountType UserAccountType
+
+  amount       Float             @db.Double
+  refCode      String
+  transferType MoneyTransferType
+  time         DateTime          @default(now()) @db.Timestamp(0)
+  status       Int
+  @@map("transactions_non_real")
+}
+
+enum TransactionNonRealType {
+  SlotBookings
+  TransactionRequests
+}
+
+model TransactionRequests {
+  id Int @id @default(autoincrement())
+
+  fromUser        User            @relation(name: "TransactionRequestFromUser", fields: [fromUserId], references: [id])
+  fromUserId      Int
+  fromAccountType UserAccountType
+
+  withUser        User            @relation(name: "TransactionRequestWithUser", fields: [withUserId], references: [id])
+  withUserId      Int
+  withAccountType UserAccountType
+
+  amount       Float             @db.Double
+  note         String            @default("")
+  transferType MoneyTransferType
+
+  fromUserTransaction   Transaction? @relation(name: "FromUserTransaction", fields: [fromUserTransactionId], references: [id])
+  fromUserTransactionId Int?
+
+  withUserTransaction   Transaction? @relation(name: "WithUserTransaction", fields: [wihtUserTransactionId], references: [id])
+  wihtUserTransactionId Int?
+
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
+
+  @@map("transaction_requests")
 }

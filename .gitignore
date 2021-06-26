@@ -111,3 +111,6 @@ aws-sms-config.js
 
 #uploads
 /public/uploads
+
+# prisma migrations
+/prisma/migrations
