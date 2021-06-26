@@ -38,7 +38,7 @@ async function updateUser(userId, parkingRequestId){
             }
         });
 
-        console.log("user_"+userId);
+        // console.log("user_"+userId);
         ioUtils.emitter().to("user_"+userId).emit('user-parking-update', [parkingReqData]);
     } catch (error) {
         console.log(error);

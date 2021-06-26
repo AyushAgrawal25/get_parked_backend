@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType } = require('@prisma/client');
+const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType, NotificationType } = require('@prisma/client');
 
 const slotUtils = require('../slotUtils');
 const userUtils = require('../../users/userUtils');
@@ -40,6 +40,16 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
             parkingSocketUtils.updateUser(parkingReq.userId, parkingReq.id);
 
             //TODO: Send notifications.
+            const notification=await prisma.notifications.create({
+                data:{
+                    senderUserId:userData.id,
+                    senderAccountType:UserAccountType.User,
+                    recieverUserId:parkingReq.slot.userId,
+                    recieverAccountType:UserAccountType.Slot,
+                    type:NotificationType.ParkingRequest,
+                    status:1
+                }
+            });
 
             let respData = parkingReq;
             respData["slot"] = undefined;

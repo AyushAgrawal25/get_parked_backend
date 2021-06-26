@@ -33,6 +33,10 @@ model User {
   withUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionWithUser")
   fromUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestFromUser")
   wihtUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestWithUser")
+
+  recievedNotifications Notifications[] @relation(name: "NotificationRecieve")
+  sentNotifications     Notifications[] @relation(name: "NotificationSend")
+
   @@map("users")
 }
 
@@ -174,6 +178,13 @@ model SlotParkingRequest {
   parkingHours Int
   status       Int
 
+  // Notifications
+  requestNotification   Notifications? @relation(name:"ParkingRequestNotification", fields: [requestNotificationId], references: [id])
+  requestNotificationId Int?
+
+  responseNotification   Notifications? @relation(name:"ParkingRequestResponseNotification", fields: [responseNotificationId], references: [id])
+  responseNotificationId Int?
+
   booking SlotBooking?
   @@map("slot_parking_requests")
 }
@@ -300,14 +311,14 @@ enum MoneyTransferType {
 model Transaction {
   id Int @id @default(autoincrement())
 
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  user        User            @relation(fields: [userId], references: [id])
+  userId      Int
+  accountType UserAccountType
 
-  accountType  UserAccountType
   transferType MoneyTransferType
+  amount       Float             @db.Double
   type         TransactionType
 
-  amount Float    @db.Double
   time   DateTime @default(now()) @db.Timestamp(0)
   status Int
 
@@ -403,4 +414,35 @@ model TransactionRequests {
   status Int
 
   @@map("transaction_requests")
+}
+
+model Notifications {
+  id Int @id @default(autoincrement())
+
+  recieverUser        User?           @relation(name: "NotificationRecieve", fields: [recieverUserId], references: [id])
+  recieverUserId      Int
+  recieverAccountType UserAccountType
+
+  senderUser        User?           @relation(name: "NotificationSend", fields: [recieverUserId], references: [id])
+  senderUserId      Int
+  senderAccountType UserAccountType
+
+  type NotificationType
+
+  time   DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  status Int
+
+  // Parking Requests
+  parkingRequest SlotParkingRequest? @relation(name:"ParkingRequestNotification")
+  parkingRequest_withResponse SlotParkingRequest? @relation(name:"ParkingRequestResponseNotification")
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ParkingRequest
+  Booking
+  Parking
+  Transaction
+  TransactionRequest
 }
