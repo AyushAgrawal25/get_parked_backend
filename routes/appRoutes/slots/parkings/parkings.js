@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType } = require('@prisma/client');
+const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType, NotificationType } = require('@prisma/client');
 
 const slotUtils = require('../slotUtils');
 const userUtils = require('../../users/userUtils');
@@ -12,6 +12,7 @@ const vehicleUtils = require('../../vehicles/vehicleUtils');
 const adminUtils = require('../../../../services/admin/adminUtils');
 const parkingSocketUtils = require('./../../../../services/sockets/parkings/parkingSocketUtils');
 const slotSocketUtils = require('./../../../../services/sockets/slots/slotSocketUtils');
+const notificationUtils = require('../../notifications/notificationUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -107,6 +108,32 @@ router.post("/park", tokenUtils.verify, async (req, res) => {
             });
             return;
         }
+
+        // For Slot
+        notificationUtils.sendNotification({
+            recieverAccountType:UserAccountType.Slot,
+            recieverUserId:bookingData.slot.userId,
+            refData:parkingCreate,
+            refId:parkingCreate.id,
+            senderAccountType:UserAccountType.User,
+            senderUserId:bookingData.userId,
+            type:NotificationType.Parking_ForSlot,
+            status:1
+        });
+
+        // For User
+        notificationUtils.sendNotification({
+            recieverAccountType:UserAccountType.User,
+            recieverUserId:bookingData.userId,
+            refData:parkingCreate,
+            refId:parkingCreate.id,
+            senderAccountType:UserAccountType.Slot,
+            senderUserId:bookingData.slot.userId,
+            type:NotificationType.Parking_ForUser,
+            status:1
+        });
+
+        // TODO: update notifications sockets too.
 
         // Update Parking Sockets.
         parkingSocketUtils.updateParkingLord(bookingData.slot.userId, bookingData.parkingRequestId);
@@ -425,6 +452,32 @@ router.post("/withdraw", tokenUtils.verify, async (req, res) => {
             });
             return;
         }
+
+        // For Slot
+        notificationUtils.sendNotification({
+            recieverAccountType:UserAccountType.Slot,
+            recieverUserId:parkingData.slot.userId,
+            refData:parkingData,
+            refId:parkingData.id,
+            senderAccountType:UserAccountType.User,
+            senderUserId:parkingData.userId,
+            type:NotificationType.ParkingWithdraw_ForSlot,
+            status:1
+        });
+
+        // For User
+        notificationUtils.sendNotification({
+            recieverAccountType:UserAccountType.User,
+            recieverUserId:parkingData.userId,
+            refData:parkingData,
+            refId:parkingData.id,
+            senderAccountType:UserAccountType.Slot,
+            senderUserId:parkingData.slot.userId,
+            type:NotificationType.ParkingWithdraw_ForUser,
+            status:1
+        });
+
+        // TODO: Update Notification Sockets.
 
         //Update Sockets Using this Data.
         parkingSocketUtils.updateParkingLord(parkingData.slot.userId, parkingData.booking.parkingRequestId);
