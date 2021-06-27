@@ -183,8 +183,8 @@ model SlotParkingRequest {
   responseNotification   Notifications? @relation(name: "ParkingRequestResponseNotification", fields: [responseNotificationId], references: [id])
   responseNotificationId Int?
 
-  time         DateTime      @default(now()) @updatedAt @db.Timestamp(0)
-  status       Int
+  time   DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  status Int
 
   booking SlotBooking?
   @@map("slot_parking_requests")
@@ -228,11 +228,17 @@ model SlotBooking {
   fromAppToSlotTransactionId Int?
 
   // Notifications
-  bookingNotification   Notifications? @relation(name: "BookingNotification", fields: [bookingNotificationId], references: [id])
-  bookingNotificationId Int?
+  forUser_BookingNotification   Notifications? @relation(name: "BookingNotification_ForUser", fields: [forUser_BookingNotificationId], references: [id])
+  forUser_BookingNotificationId Int?
 
-  cancellationNotification   Notifications? @relation(name: "BookingCancellationNotification", fields: [cancellationNotificationId], references: [id])
-  cancellationNotificationId Int?
+  forSlot_BookingNotification   Notifications? @relation(name: "BookingNotification_ForSlot", fields: [forSlot_BookingNotificationId], references: [id])
+  forSlot_BookingNotificationId Int?
+
+  forUser_CancellationNotification   Notifications? @relation(name: "BookingCancellationNotification_ForUser", fields: [forUser_CancellationNotificationId], references: [id])
+  forUser_CancellationNotificationId Int?
+
+  forSlot_CancellationNotification   Notifications? @relation(name: "BookingCancellationNotification_ForSlot", fields: [forSlot_CancellationNotificationId], references: [id])
+  forSlot_CancellationNotificationId Int?
 
   parking SlotParking?
   @@map("slot_bookings")
@@ -258,14 +264,20 @@ model SlotParking {
   parkingHours Int
 
   // Notifications
-  parkingNotification   Notifications? @relation(name: "ParkingNotification", fields: [parkingNotificationId], references: [id])
-  parkingNotificationId Int?
+  forUser_ParkingNotification   Notifications? @relation(name: "ParkingNotification_ForUser", fields: [forUser_ParkingNotificationId], references: [id])
+  forUser_ParkingNotificationId Int?
 
-  withdrawNotification   Notifications? @relation(name: "ParkingWithdrawNotification", fields: [withdrawNotificationId], references: [id])
-  withdrawNotificationId Int?
+  forSlot_ParkingNotification   Notifications? @relation(name: "ParkingNotification_ForSlot", fields: [forSlot_ParkingNotificationId], references: [id])
+  forSlot_ParkingNotificationId Int?
 
-  time         DateTime      @default(now()) @db.Timestamp(0)
-  status       Int
+  forUser_WithdrawNotification   Notifications? @relation(name: "ParkingWithdrawNotification_ForUser", fields: [forUser_WithdrawNotificationId], references: [id])
+  forUser_WithdrawNotificationId Int?
+
+  forSlot_WithdrawNotification   Notifications? @relation(name: "ParkingWithdrawNotification_ForSlot", fields: [forSlot_WithdrawNotificationId], references: [id])
+  forSlot_WithdrawNotificationId Int?
+
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
 
   slotRatingReview SlotRatingReview?
 
@@ -465,18 +477,23 @@ model Notifications {
   parkingRequest_withResponse SlotParkingRequest? @relation(name: "ParkingRequestResponseNotification")
 
   // Bookings
-  booking             SlotBooking? @relation("BookingNotification")
-  bookingCancellation SlotBooking? @relation("BookingCancellationNotification")
+  booking_ForUser             SlotBooking? @relation("BookingNotification_ForUser")
+  booking_ForSlot             SlotBooking? @relation("BookingNotification_ForSlot")
+  bookingCancellation_ForUser SlotBooking? @relation("BookingCancellationNotification_ForUser")
+  bookingCancellation_ForSlot SlotBooking? @relation("BookingCancellationNotification_ForSlot")
 
   // Parkings
-  parking         SlotParking? @relation("ParkingNotification")
-  parkingWithdraw SlotParking? @relation("ParkingWithdrawNotification")
+  parking_ForUser SlotParking? @relation("ParkingNotification_ForUser")
+  parking_ForSlot SlotParking? @relation("ParkingNotification_ForSlot")
+
+  parkingWithdraw_ForUser SlotParking? @relation("ParkingWithdrawNotification_ForUser")
+  parkingWithdraw_ForSlot SlotParking? @relation("ParkingWithdrawNotification_ForSlot")
 
   // Transactions
   transaction Transaction? @relation("TransactionNotification")
 
   // Transaction Requests
-  transactionRequest TransactionRequests? @relation("TransactionRequestNotification")
+  transactionRequest              TransactionRequests? @relation("TransactionRequestNotification")
   transactionRequest_withResponse TransactionRequests? @relation("TransactionRequestResponseNotification")
 
   @@map("notifications")
@@ -485,11 +502,19 @@ model Notifications {
 enum NotificationType {
   ParkingRequest
   ParkingRequestResponse
-  Booking
-  BookingCancellation
-  Parking
-  ParkingWithdraw
+
+  Booking_ForSlot
+  Booking_ForUser
+  BookingCancellation_ForSlot
+  BookingCancellation_ForUser
+
+  Parking_ForSlot
+  Parking_ForUser
+  ParkingWithdraw_ForSlot
+  ParkingWithdraw_ForUser
+
   Transaction
+
   TransactionRequest
   TransactionRequestResponse
 }

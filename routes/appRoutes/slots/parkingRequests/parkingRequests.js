@@ -39,17 +39,15 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
             //Update Sockets Using this Data.
             parkingSocketUtils.updateParkingLord(parkingReq.slot.userId, parkingReq.id);
             parkingSocketUtils.updateUser(parkingReq.userId, parkingReq.id);
-
-            //TODO: Send notifications.
-            const notification=await prisma.notifications.create({
-                data:{
-                    senderUserId:userData.id,
-                    senderAccountType:UserAccountType.User,
-                    recieverUserId:parkingReq.slot.userId,
-                    recieverAccountType:UserAccountType.Slot,
-                    type:NotificationType.ParkingRequest,
-                    status:1
-                }
+            
+            notificationUtils.sendNotification({
+                refId:parkingReq.id,
+                recieverAccountType:UserAccountType.Slot,
+                recieverUserId:parkingReq.slot.userId,
+                senderAccountType:UserAccountType.User,
+                senderUserId:parkingReq.userId,
+                type:NotificationType.ParkingRequest,
+                status:1
             });
 
             let respData = parkingReq;
@@ -154,6 +152,16 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
             parkingSocketUtils.updateUser(parkingReqUpdate.userId, parkingReqUpdate.id);
 
             //TODO: Send notifications.
+            notificationUtils.sendNotification({
+                recieverAccountType:UserAccountType.User,
+                recieverUserId:parkingReqUpdate.userId,
+                refData:parkingReqUpdate,
+                refId:parkingReqUpdate.id,
+                senderAccountType:UserAccountType.Slot,
+                senderUserId:parkingReqUpdate.slot.userId,
+                type:NotificationType.ParkingRequestResponse,
+                status:1
+            });
             
             let respData=parkingReqUpdate;
             respData["slot"]=undefined;

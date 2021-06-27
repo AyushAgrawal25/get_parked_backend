@@ -1,38 +1,7 @@
 require('dotenv').config();
 
 const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType, NotificationType } = require('@prisma/client');
-
-function getTitle({notificationType, responseType}){
-    let title="";
-    switch (notificationType) {
-        case NotificationType.ParkingRequest:
-            title="You have a Parking Request from";
-        break;
-
-        case NotificationType.ParkingRequestResponse:
-            title="Your Requested had been "+((responseType==1) ? "Accepted" : "Rejected")+" by";
-        break;
-        case NotificationType.Booking:
-            title=(responseType == 1) ? "Slot Successfully Booked" : "Slot Booking Failed due to Unavailability of Space";
-        break;
-        case NotificationType.BookingCancellation:
-            title="Slot Booking Cancelled Successfully"
-        break;
-        case NotificationType.Parking:
-            title="Vehicle Successfully Parked";
-        break;
-        case NotificationType.ParkingWithdraw:
-            title="Parking Completed";
-        break;
-        case NotificationType.Transaction:
-
-        break;
-        case NotificationType.TransactionRequest:
-        break;
-        case NotificationType.TransactionRequestResponse:
-        break;
-    }
-}
+const prisma = new PrismaClient();
 
 const nofiticationTitles={
     parkingRequest:{
@@ -82,15 +51,193 @@ async function sendNotification({
     recieverUserId, 
     recieverAccountType, 
     senderUserId,
-    senderUserData,  
     senderAccountType,
     type,
-    status=1,
-    responseType
+    refId,
+    refData,
+    status=1
 }){
+    try {
+        let notification;
+        try {
+            notification=await prisma.notifications.create({
+                data:{
+                    senderUserId:senderUserId,
+                    senderAccountType:senderAccountType,
+                    recieverUserId:recieverUserId,
+                    recieverAccountType:recieverAccountType,
+                    type:type,
+                    status:status
+                }
+            });
+        } catch (error) {
+            console.log(error);
+        }
 
+        if(!notification){
+            return;
+        }
+
+        // TODO: Update reciever sockets.
+        updateReferenceTable({
+            refId:refId,
+            notification:notification,
+            type:type
+        });
+
+    } catch (error) {
+        console.log(error);
+    }
+}   
+
+async function updateReferenceTable({notification, refId, type}){
+    switch (type) {
+        case NotificationType.ParkingRequest:
+        await prisma.slotParkingRequest.update({
+            where:{
+                id:refId
+            },
+            data:{
+                requestNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.ParkingRequestResponse:
+        await prisma.slotParkingRequest.update({
+            where:{
+                id:refId
+            },
+            data:{
+                responseNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.Booking_ForUser:
+        await prisma.slotBooking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forUser_BookingNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.Booking_ForSlot:
+        await prisma.slotBooking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forSlot_BookingNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.BookingCancellation_ForSlot:
+        await prisma.slotBooking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forSlot_CancellationNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.BookingCancellation_ForUser:
+        await prisma.slotBooking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forUser_CancellationNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.Parking_ForSlot:
+        await prisma.slotParking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forSlot_ParkingNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.Parking_ForUser:
+        await prisma.slotParking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forUser_ParkingNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.ParkingWithdraw_ForSlot:
+        await prisma.slotParking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forSlot_WithdrawNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.ParkingWithdraw_ForUser:
+        await prisma.slotParking.update({
+            where:{
+                id:refId
+            },
+            data:{
+                forUser_WithdrawNotificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.Transaction:
+        await prisma.transaction.update({
+            where:{
+                id:refId
+            },
+            data:{
+                notificationId:notification.id
+            }
+        });
+        break;
+        
+        case NotificationType.TransactionRequest:
+        await prisma.transactionRequests.update({
+            where:{
+                id:refId
+            },
+            data:{
+                requestNotificationId:notificationId
+            }
+        });
+        break;
+        
+        case NotificationType.TransactionRequestResponse:
+        await prisma.transactionRequests.update({
+            where:{
+                id:refId
+            },
+            data:{
+                responseNotificationId:notification.id
+            }
+        });
+        break;
+    }
 }
 
 module.exports={
-    sendNotification
+    sendNotification,
+    titles:nofiticationTitles   
 }
