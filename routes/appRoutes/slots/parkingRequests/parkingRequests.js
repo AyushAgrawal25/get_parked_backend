@@ -7,6 +7,7 @@ const userUtils = require('../../users/userUtils');
 const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
 const vehicleUtils = require('../../vehicles/vehicleUtils');
 const parkingSocketUtils=require('../../../../services/sockets/parkings/parkingSocketUtils');
+const notificationUtils=require('./../../notifications/notificationUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();

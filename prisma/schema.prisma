@@ -413,13 +413,13 @@ enum TransactionNonRealType {
 model TransactionRequests {
   id Int @id @default(autoincrement())
 
-  fromUser        User            @relation(name: "TransactionRequestFromUser", fields: [fromUserId], references: [id])
-  fromUserId      Int
-  fromAccountType UserAccountType
+  requesterUser        User            @relation(name: "TransactionRequestFromUser", fields: [requesterUserId], references: [id])
+  requesterUserId      Int
+  requesterAccountType UserAccountType
 
-  withUser        User            @relation(name: "TransactionRequestWithUser", fields: [withUserId], references: [id])
-  withUserId      Int
-  withAccountType UserAccountType
+  requestedFromUser        User            @relation(name: "TransactionRequestWithUser", fields: [requestedFromUserId], references: [id])
+  requestedFromUserId      Int
+  requestedFromAccountType UserAccountType
 
   amount       Float             @db.Double
   note         String            @default("")

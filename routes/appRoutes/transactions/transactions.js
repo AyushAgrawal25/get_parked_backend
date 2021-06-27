@@ -220,11 +220,11 @@ router.post('/request', tokenUtils.verify, async(req, res)=>{
         const txnReq=await prisma.transactionRequests.create({
             data:{
                 amount:parseFloat(req.body.amount),
-                fromAccountType:req.body.fromAccountType,
-                fromUserId:parseInt(userData.id),
+                requesterAccountType:req.body.requesterAccountType,
+                requesterUserId:parseInt(userData.id),
                 transferType:req.body.transferType,
-                withAccountType:req.body.withAccountType,
-                withUserId:parseInt(req.body.withUserId),
+                requestedFromAccountType:req.body.requestedFromAccountType,
+                requestedFromUserId:parseInt(req.body.requestedFromUserId),
                 note:req.body.note,
                 status:0
             }
@@ -268,7 +268,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
         const txnReqData=await prisma.transactionRequests.findFirst({
             where:{
                 id:parseInt(req.body.requestId),
-                withUserId:parseInt(userData.id)
+                requestedFromUserId:parseInt(userData.id)
             }
         });
         if((!txnReqData)||(txnReqData.status!=0)){
@@ -321,22 +321,22 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
         // Thats why money transfer type remains same here.
         const fromTxnCreate=prisma.transaction.create({
             data:{
-                accountType:txnReqData.fromAccountType,
+                accountType:txnReqData.requesterAccountType,
                 transferType: txnReqData.transferType,
                 type:TransactionType.NonReal,
                 amount:txnReqData.amount,
                 status:1,
-                userId:txnReqData.fromUserId
+                userId:txnReqData.requesterUserId
             }
         });
         const withTxnCreate=prisma.transaction.create({
             data:{
-                accountType:txnReqData.withAccountType,
+                accountType:txnReqData.requestedFromAccountType,
                 transferType: (txnReqData.transferType==MoneyTransferType.Add) ? MoneyTransferType.Remove:MoneyTransferType.Add,
                 type:TransactionType.NonReal,
                 amount:txnReqData.amount,
                 status:1,
-                userId:txnReqData.withUserId
+                userId:txnReqData.requestedFromUserId
             }
         });
 
@@ -364,13 +364,13 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
         // From is the same of transaction request in this case.
         const fromTxnNonRealCreate=prisma.transactionNonReal.create({
             data:{
-                fromUserId:txnReqData.fromUserId,
-                fromAccountType: txnReqData.fromAccountType,
+                fromUserId:txnReqData.requesterUserId,
+                fromAccountType: txnReqData.requesterAccountType,
                 amount: txnReqData.amount,
                 refCode:txnRefCode,
                 transferType: fromTxnData.transferType,
-                withAccountType:txnReqData.withAccountType,
-                withUserId:txnReqData.withUserId,
+                withAccountType:txnReqData.requestedFromAccountType,
+                withUserId:txnReqData.requestedFromUserId,
                 status:1,
                 type:TransactionNonRealType.TransactionRequests,
                 transactionId:fromTxnData.id,
@@ -379,13 +379,13 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
 
         const withTxnNonRealCreate=prisma.transactionNonReal.create({
             data:{
-                fromUserId:txnReqData.withUserId,
-                fromAccountType: txnReqData.withAccountType,
+                fromUserId:txnReqData.requestedFromUserId,
+                fromAccountType: txnReqData.requestedFromAccountType,
                 amount: txnReqData.amount,
                 refCode:txnRefCode,
                 transferType: withTxnData.transferType,
-                withAccountType:txnReqData.fromAccountType,
-                withUserId:txnReqData.fromUserId,
+                withAccountType:txnReqData.requesterAccountType,
+                withUserId:txnReqData.requesterUserId,
                 status:1,
                 type:TransactionNonRealType.TransactionRequests,
                 transactionId:withTxnData.id,
