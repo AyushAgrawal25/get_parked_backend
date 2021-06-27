@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const vehicleUtils=require('./vehicleUtils');
+const fcmUtils=require('./../../../services/notifications/FCM-Notifications/fcmUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();

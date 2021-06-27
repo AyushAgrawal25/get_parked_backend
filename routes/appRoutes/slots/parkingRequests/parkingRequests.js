@@ -2,12 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType, NotificationType } = require('@prisma/client');
 
+const fcmUtils=require('./../../../../services/notifications/FCM-Notifications/fcmUtils');
 const slotUtils = require('../slotUtils');
 const userUtils = require('../../users/userUtils');
 const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
 const vehicleUtils = require('../../vehicles/vehicleUtils');
 const parkingSocketUtils=require('../../../../services/sockets/parkings/parkingSocketUtils');
 const notificationUtils=require('./../../notifications/notificationUtils');
+const domain = require('../../../../services/domain');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -27,11 +29,11 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
             },
             include: {
                 slot: {
-                    include: {
-                        user: true,
-                    }
+                    select:slotUtils.selection
                 },
-                user: true
+                user:{
+                    select:userUtils.selection
+                }
             }
         });
 
@@ -40,6 +42,8 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
             parkingSocketUtils.updateParkingLord(parkingReq.slot.userId, parkingReq.id);
             parkingSocketUtils.updateUser(parkingReq.userId, parkingReq.id);
             
+            // TODO: update notification sockets.
+
             notificationUtils.sendNotification({
                 refId:parkingReq.id,
                 recieverAccountType:UserAccountType.Slot,
@@ -48,6 +52,14 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
                 senderUserId:parkingReq.userId,
                 type:NotificationType.ParkingRequest,
                 status:1
+            });
+
+            fcmUtils.sendTo({
+                body:parkingReq.user.userDetails.firstName+" "+parkingReq.user.userDetails.lastName,
+                data:parkingReq,
+                imgUrl:(parkingReq.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+parkingReq.user.userDetails.picThumbnailUrl:undefined,
+                title:notificationUtils.titles.parkingRequest.forSlot,
+                token:parkingReq.user.userNotification.token
             });
 
             let respData = parkingReq;
@@ -134,11 +146,11 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
                 },
                 include: {
                     slot: {
-                        include: {
-                            user: true,
-                        }
+                        select:slotUtils.selection
                     },
-                    user: true
+                    user: {
+                        select:userUtils.selection
+                    }
                 }
             });
         } catch (error) {
@@ -151,7 +163,7 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
             parkingSocketUtils.updateParkingLord(parkingReqUpdate.slot.userId, parkingReqUpdate.id);
             parkingSocketUtils.updateUser(parkingReqUpdate.userId, parkingReqUpdate.id);
 
-            //TODO: Send notifications.
+            //TODO: Update notifications Socket.
             notificationUtils.sendNotification({
                 recieverAccountType:UserAccountType.User,
                 recieverUserId:parkingReqUpdate.userId,
@@ -161,6 +173,14 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
                 senderUserId:parkingReqUpdate.slot.userId,
                 type:NotificationType.ParkingRequestResponse,
                 status:1
+            });
+
+            fcmUtils.sendTo({
+                title:notificationUtils.titles.parkingRequestResponse.forUser(req.body.response),
+                body:parkingReqUpdate.slot.name,
+                data:parkingReqUpdate,
+                imgUrl:(parkingReqUpdate.slot.slotImages.length>0) ? domain.domainName+parkingReqUpdate.slot.slotImages[0].thumbnailUrl : undefined,
+                token:parkingReqUpdate.user.userNotification.token
             });
             
             let respData=parkingReqUpdate;
