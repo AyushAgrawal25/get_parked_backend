@@ -13,6 +13,9 @@ const adminUtils = require('../../../../services/admin/adminUtils');
 const parkingSocketUtils = require('./../../../../services/sockets/parkings/parkingSocketUtils');
 const slotSocketUtils = require('./../../../../services/sockets/slots/slotSocketUtils');
 const notificationUtils = require('../../notifications/notificationUtils');
+const fcmUtils=require('./../../../../services/notifications/FCM-Notifications/fcmUtils');
+const domain = require('../../../../services/domain');
+const transactionSocketUtils=require('./../../../../services/sockets/transactions/transactionSocketUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -133,14 +136,40 @@ router.post("/park", tokenUtils.verify, async (req, res) => {
             status:1
         });
 
-        // TODO: update notifications sockets too.
-
         // Update Parking Sockets.
         parkingSocketUtils.updateParkingLord(bookingData.slot.userId, bookingData.parkingRequestId);
         parkingSocketUtils.updateUser(bookingData.userId, bookingData.parkingRequestId);
 
         // Update Slots Sockets.
         slotSocketUtils.updateSlotOnMap(bookingData.slotId);
+
+        // For Slot
+        try {
+            fcmUtils.sendTo({
+                body:bookingData.user.userDetails.firstName+" "+bookingData.user.userDetails.lastName,
+                data:parkingCreate,
+                imgUrl:(bookingData.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+bookingData.user.userDetails.picThumbnailUrl:null,
+                title:notificationUtils.titles.parking.forSlot,
+                token:bookingData.slot.user.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notifications Block...");
+            console.log(error);
+        }
+
+        // For User
+        try {
+            fcmUtils.sendTo({
+                body:bookingData.slot.name,
+                data:parkingCreate,
+                imgUrl:(bookingData.slot.slotImages.length>0) ? domain.domainName+bookingData.slot.slotImages[0].thumbnailUrl: null,
+                title:notificationUtils.titles.parking.forUser,
+                token:bookingData.user.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notifications Block...");
+            console.log(error);
+        }
 
         res.statusCode = parkingStatus.success.code;
         res.json({
@@ -477,16 +506,44 @@ router.post("/withdraw", tokenUtils.verify, async (req, res) => {
             status:1
         });
 
-        // TODO: Update Notification Sockets.
-
         //Update Sockets Using this Data.
         parkingSocketUtils.updateParkingLord(parkingData.slot.userId, parkingData.booking.parkingRequestId);
         parkingSocketUtils.updateUser(parkingData.userId, parkingData.booking.parkingRequestId);
 
+        transactionSocketUtils.updateUser(parkingData.userId, userToSlotTxn.id);
+        transactionSocketUtils.updateUser(parkingData.slot.userId, slotToUserTxn.id);
+        transactionSocketUtils.updateUser(parkingData.slot.userId, slotToAppTxn.id);
+
         // Update Slots Sockets.
         slotSocketUtils.updateSlotOnMap(parkingData.slotId);
 
-        // TODO: Update Transactions Sockets.
+        // For Slot
+        try {
+            fcmUtils.sendTo({
+                body:parkingData.user.userDetails.firstName+" "+parkingData.user.userDetails.lastName,
+                data:parkingData,
+                imgUrl:(parkingData.user.userDetails.picThumbnailUrl!=null)? domain.domainName+parkingData.user.userDetails.picThumbnailUrl:null,
+                title:notificationUtils.titles.parkingWithdraw.forSlot,
+                token:parkingData.slot.user.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notifications block...");
+            console.log(error);
+        }
+
+        // For User
+        try {
+            fcmUtils.sendTo({
+                body:parkingData.slot.name,
+                data:parkingData,
+                imgUrl:(parkingData.slot.slotImages.length>0) ? domain.domainName+ parkingData.slot.slotImages[0].thumbnailUrl : null,
+                title:notificationUtils.titles.parkingWithdraw.forUser,
+                token:parkingData.user.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notifications block...");
+            console.log(error);
+        }
 
         res.statusCode = parkingWithdrawStatus.success.code;
         res.json({

@@ -78,12 +78,13 @@ async function sendNotification({
             return;
         }
 
-        // TODO: Update reciever sockets.
-        updateReferenceTable({
+        await updateReferenceTable({
             refId:refId,
             notification:notification,
             type:type
         });
+
+        // TODO: Update Notification Sockets.
 
     } catch (error) {
         console.log(error);

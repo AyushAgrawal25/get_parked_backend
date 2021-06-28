@@ -32,33 +32,23 @@ function toProperDataForFCM(fcmData) {
 async function sendTo({
     token, title, body, imgUrl, data
 }){
-    // admin.messaging().sendToDevice(token, {
-    //     notification:{
-    //         title:title,
-    //         body:body,
-    //         image:imgUrl
-    //     },
-    //     data:data
-    // }, notification_options).then((resp)=>{
-    //     console.log(resp.results);
-    // }).catch((err)=>{
-    //     console.log(err);
-    // });
-
-    console.log(imgUrl);
-    admin.messaging().send({
-        token:token,
-        notification:{
-            imageUrl:imgUrl,
-            body:body,
-            title:title
-        },
-        data:toProperDataForFCM(data), 
-    }).then((resp)=>{
-        console.log(resp);
-    }).catch((err)=>{
-        console.log(err);
-    });
+    try {
+        admin.messaging().send({
+            token:token,
+            notification:{
+                imageUrl:((imgUrl)&&(imgUrl!=null)) ? imgUrl : undefined,
+                body:body,
+                title:title
+            },
+            data:toProperDataForFCM(data), 
+        }).then((resp)=>{
+            console.log(resp);
+        }).catch((err)=>{
+            console.log(err);
+        });
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 module.exports={

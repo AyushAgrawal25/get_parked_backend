@@ -14,6 +14,8 @@ const parkingSocketUtils=require('./../../../../services/sockets/parkings/parkin
 const slotSocketUtils=require('./../../../../services/sockets/slots/slotSocketUtils');
 const transactionSocketUtils=require('./../../../../services/sockets/transactions/transactionSocketUtils');
 const notificationUtils = require('../../notifications/notificationUtils');
+const fcmUtils=require('./../../../../services/notifications/FCM-Notifications/fcmUtils');
+const domain = require('../../../../services/domain');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -27,11 +29,10 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             },
             include:{
                 slot:{
-                    include:{
-                        user:{
-                            select:userUtils.selection
-                        }
-                    }
+                    select:slotUtils.selection,
+                },
+                user:{
+                    select:userUtils.selection
                 },
                 vehicle:{
                     select:vehicleUtils.selectionWithTypeData
@@ -67,8 +68,34 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
         let requiredSpace=bookingVehicle.length*bookingVehicle.breadth;
         
         if((availableSpace<requiredSpace)&&(parkingRequestData.slot.height>=bookingVehicle.height)){
-            // TODO: send notification
             // Only FCM notifications.
+            // For Slot.
+            try {
+                fcmUtils.sendTo({
+                    body:parkingRequestData.user.userDetails.firstName+" "+parkingRequestData.user.userDetails.lastName,
+                    data:parkingRequestData,
+                    imgUrl:(parkingRequestData.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+parkingRequestData.user.userDetails.picThumbnailUrl:null,
+                    title:notificationUtils.titles.booking.forSlot(0),
+                    token:parkingRequestData.slot.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notifications block..");
+                console.log(error);
+            }
+            
+            // For User.
+            try {
+                fcmUtils.sendTo({
+                    body:parkingRequestData.slot.name,
+                    data:parkingRequestData,
+                    imgUrl:(parkingRequestData.slot.slotImages.length>0) ? domain.domainName+parkingRequestData.slot.slotImages[0].thumbnailUrl : null,
+                    title:notificationUtils.titles.booking.forUser(0),
+                    token:parkingRequestData.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notifications block..");
+                console.log(error);
+            }
             
             res.statusCode=bookingStatus.spaceUnavailable.code;
             res.json({
@@ -110,8 +137,34 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
                 }
             });
 
-            // TODO: send notification
-            // Only FCM notifications.
+            // Only FCM notifications.            
+            // For Slot.
+            try {
+                fcmUtils.sendTo({
+                    body:parkingRequestData.user.userDetails.firstName+" "+parkingRequestData.user.userDetails.lastName,
+                    data:parkingRequestData,
+                    imgUrl:(parkingRequestData.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+parkingRequestData.user.userDetails.picThumbnailUrl:null,
+                    title:notificationUtils.titles.booking.forSlot(0),
+                    token:parkingRequestData.slot.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notifications block..");
+                console.log(error);
+            }
+            
+            // For User.
+            try {
+                fcmUtils.sendTo({
+                    body:parkingRequestData.slot.name,
+                    data:parkingRequestData,
+                    imgUrl:(parkingRequestData.slot.slotImages.length>0) ? domain.domainName+parkingRequestData.slot.slotImages[0].thumbnailUrl : null,
+                    title:notificationUtils.titles.booking.forUser(0),
+                    token:parkingRequestData.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notifications block..");
+                console.log(error);
+            }
             
             res.statusCode=bookingStatus.spaceUnavailable.code;
             res.json({
@@ -149,9 +202,7 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
-
-        // TODO: send notification
-
+        
         // For Slot
         notificationUtils.sendNotification({
             recieverAccountType:UserAccountType.Slot,
@@ -175,7 +226,36 @@ router.post("/book", tokenUtils.verify, async(req, res)=>{
             type:NotificationType.Booking_ForUser,
             status:1
         });
+
+        // FCM notifications
+        // For Slot
+        try {
+            fcmUtils.sendTo({
+                body:parkingRequestData.user.userDetails.firstName+" "+parkingRequestData.user.userDetails.lastName,
+                data:bookingResp,
+                imgUrl:(parkingRequestData.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+parkingRequestData.user.userDetails.picThumbnailUrl:null,
+                title:notificationUtils.titles.booking.forSlot(1),
+                token:parkingRequestData.slot.user.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notifications Block...");
+            console.log(error);
+        }
         
+        // For User
+        try {
+            fcmUtils.sendTo({
+                body:parkingRequestData.slot.name,
+                data:bookingResp,
+                imgUrl:(parkingRequestData.slot.slotImages.length>0) ? domain.domainName+parkingRequestData.slot.slotImages[0].thumbnailUrl:null,
+                title:notificationUtils.titles.booking.forUser(1),
+                token:parkingRequestData.user.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notifications Block...");
+            console.log(error);
+        }
+
         // Update Parkings sockets
         parkingSocketUtils.updateParkingLord(parkingRequestData.slot.userId, parkingRequestData.id);
         parkingSocketUtils.updateUser(parkingRequestData.userId, parkingRequestData.id);
@@ -520,10 +600,37 @@ router.post('/cancel', tokenUtils.verify, async(req, res)=>{
             transactionSocketUtils.updateUser(bookingData.slot.userId, slotToUserTxn.id);
             transactionSocketUtils.updateUser(bookingData.slot.userId, slotToAppTxn.id);
             
-            // TODO: notifications Socket Update.
-
         } catch (error) {
             console.log("Slot Booking Cancellation : Sockets Update Block...");           
+            console.log(error);
+        }
+
+        // FCM notifications
+        // For Slot
+        try {
+            fcmUtils.sendTo({
+                body:bookingData.user.userDetails.firstName+" "+bookingData.user.userDetails.lastName,
+                data:bookingData,
+                title:notificationUtils.titles.bookingCancellation.forSlot,
+                imgUrl:(bookingData.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+bookingData.user.userDetails.picThumbnailUrl:null,
+                token:bookingData.slot.user.userNotification.token        
+            });
+        } catch (error) {
+            console.log("FCM notifications Block...");
+            console.log(error);
+        }
+
+        // For User
+        try {
+            fcmUtils.sendTo({
+                body:bookingData.slot.name,
+                data:bookingData,
+                title:notificationUtils.titles.bookingCancellation.forUser,
+                imgUrl:(bookingData.slot.slotImages.length>0) ? domain.domainName+bookingData.slot.slotImages[0].thumbnailUrl:null,
+                token:bookingData.user.userNotification.token      
+            });
+        } catch (error) {
+            console.log("FCM notifications Block...");
             console.log(error);
         }
         

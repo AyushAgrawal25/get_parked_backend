@@ -6,6 +6,7 @@ const slotUtils = require('./../slots/slotUtils');
 const userUtils = require('./../users/userUtils');
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const transactionUtils = require('./transactionUtils');
+const transactionSocketUtils=require('./../../../services/sockets/transactions/transactionSocketUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -176,14 +177,8 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
             return;
         }
         
-        // TODO: create like this...
-        // const tmpData={
-        //     walletAmout:await transactionUtils.walletBalance(userData.id),
-        //     vaultAmount:await transactionUtils.vaultBalance(userData.id)
-        // }
-        // ioUtils.get().to("user_"+userData.id).emit("transaction-update", tmpData);
-
-        // TODO: Update Transactions Sockets.
+        transactionSocketUtils.updateUser(txn.userId, txn.id);
+        
         res.statusCode = realTxnPostStatus.success.code;
         res.json({
             message: realTxnPostStatus.success.message,

@@ -42,8 +42,6 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
             parkingSocketUtils.updateParkingLord(parkingReq.slot.userId, parkingReq.id);
             parkingSocketUtils.updateUser(parkingReq.userId, parkingReq.id);
             
-            // TODO: update notification sockets.
-
             notificationUtils.sendNotification({
                 refId:parkingReq.id,
                 recieverAccountType:UserAccountType.Slot,
@@ -54,13 +52,18 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
                 status:1
             });
 
-            fcmUtils.sendTo({
-                body:parkingReq.user.userDetails.firstName+" "+parkingReq.user.userDetails.lastName,
-                data:parkingReq,
-                imgUrl:(parkingReq.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+parkingReq.user.userDetails.picThumbnailUrl:undefined,
-                title:notificationUtils.titles.parkingRequest.forSlot,
-                token:parkingReq.user.userNotification.token
-            });
+            try {
+                fcmUtils.sendTo({
+                    body:parkingReq.user.userDetails.firstName+" "+parkingReq.user.userDetails.lastName,
+                    data:parkingReq,
+                    imgUrl:(parkingReq.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+parkingReq.user.userDetails.picThumbnailUrl:undefined,
+                    title:notificationUtils.titles.parkingRequest.forSlot,
+                    token:parkingReq.slot.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notification block");
+                console.log(error);
+            }
 
             let respData = parkingReq;
             respData["slot"] = undefined;
@@ -163,7 +166,6 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
             parkingSocketUtils.updateParkingLord(parkingReqUpdate.slot.userId, parkingReqUpdate.id);
             parkingSocketUtils.updateUser(parkingReqUpdate.userId, parkingReqUpdate.id);
 
-            //TODO: Update notifications Socket.
             notificationUtils.sendNotification({
                 recieverAccountType:UserAccountType.User,
                 recieverUserId:parkingReqUpdate.userId,
@@ -175,13 +177,18 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
                 status:1
             });
 
-            fcmUtils.sendTo({
-                title:notificationUtils.titles.parkingRequestResponse.forUser(req.body.response),
-                body:parkingReqUpdate.slot.name,
-                data:parkingReqUpdate,
-                imgUrl:(parkingReqUpdate.slot.slotImages.length>0) ? domain.domainName+parkingReqUpdate.slot.slotImages[0].thumbnailUrl : undefined,
-                token:parkingReqUpdate.user.userNotification.token
-            });
+            try {
+                fcmUtils.sendTo({
+                    title:notificationUtils.titles.parkingRequestResponse.forUser(req.body.response),
+                    body:parkingReqUpdate.slot.name,
+                    data:parkingReqUpdate,
+                    imgUrl:(parkingReqUpdate.slot.slotImages.length>0) ? domain.domainName+parkingReqUpdate.slot.slotImages[0].thumbnailUrl : undefined,
+                    token:parkingReqUpdate.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notification block...");
+                console.log(error);
+            }
             
             let respData=parkingReqUpdate;
             respData["slot"]=undefined;
