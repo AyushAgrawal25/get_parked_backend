@@ -464,7 +464,7 @@ model Notifications {
   recieverUserId      Int
   recieverAccountType UserAccountType
 
-  senderUser        User?           @relation(name: "NotificationSend", fields: [recieverUserId], references: [id])
+  senderUser        User?           @relation(name: "NotificationSend", fields: [senderUserId], references: [id])
   senderUserId      Int
   senderAccountType UserAccountType
 
