@@ -29,10 +29,11 @@ model User {
   slotRatingReviews           SlotRatingReview[]
   transactions                Transaction[]
   transactionsReal            TransactionReal[]
-  fromUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionFromUser")
-  withUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionWithUser")
-  fromUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestFromUser")
-  wihtUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestWithUser")
+  fromUserTransactionsNonReal TransactionNonReal[] @relation(name: "NonRealTransactionFromUser")
+  withUserTransactionsNonReal TransactionNonReal[] @relation(name: "NonRealTransactionWithUser")
+
+  requesterTransactionRequests     TransactionRequests[] @relation(name: "TransactionRequestFromUser")
+  requestedFromTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestWithUser")
 
   recievedNotifications Notifications[] @relation(name: "NotificationRecieve")
   sentNotifications     Notifications[] @relation(name: "NotificationSend")
@@ -357,8 +358,8 @@ model Transaction {
   transactionReal    TransactionReal?
   transactionNonReal TransactionNonReal?
 
-  fromUserTransactionRequest TransactionRequests? @relation(name: "FromUserTransaction")
-  withUserTransactionRequest TransactionRequests? @relation(name: "WithUserTransaction")
+  requesterTransactionRequest     TransactionRequests? @relation(name: "Requester_Transaction")
+  requestedFromTransactionRequest TransactionRequests? @relation(name: "Requested_From_Transaction")
 
   fromUserToSlot_booking SlotBooking? @relation(name: "FromUserToSlot_Transaction")
   fromSlotToUser_booking SlotBooking? @relation(name: "FromSlotToUser_Transaction")
@@ -437,11 +438,11 @@ model TransactionRequests {
   note         String            @default("")
   transferType MoneyTransferType
 
-  fromUserTransaction   Transaction? @relation(name: "FromUserTransaction", fields: [fromUserTransactionId], references: [id])
-  fromUserTransactionId Int?
+  requesterTransaction   Transaction? @relation(name: "Requester_Transaction", fields: [requesterTransactionId], references: [id])
+  requesterTransactionId Int?
 
-  withUserTransaction   Transaction? @relation(name: "WithUserTransaction", fields: [wihtUserTransactionId], references: [id])
-  wihtUserTransactionId Int?
+  requestedFromTransaction   Transaction? @relation(name: "Requested_From_Transaction", fields: [requestedFromTransactionId], references: [id])
+  requestedFromTransactionId Int?
 
   // Notification
   requestNotification   Notifications? @relation(name: "TransactionRequestNotification", fields: [requestNotificationId], references: [id])

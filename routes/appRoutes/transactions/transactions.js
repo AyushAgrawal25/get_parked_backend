@@ -16,7 +16,7 @@ router.get("/", tokenUtils.verify, async (req, res) => {
     try {
         const txns=await prisma.transaction.findMany({
             where:{
-                userId:userData.id
+                userId:parseInt(userData.id)
             },
             include:{
                 transactionReal:{
@@ -416,14 +416,15 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
+        // TODO: Make changes accordint to new prisma scheme
         const updateRequest=await prisma.transactionRequests.update({
             where:{
                 id:txnReqData.id
             },
             data:{
                 status:1,
-                fromUserTransactionId:fromTxnData.id,
-                wihtUserTransactionId:withTxnData.id
+                requesterTransactionId:fromTxnData.id,
+                requestedFromTransactionId:withTxnData.id
             }
         });
         if(!updateRequest){

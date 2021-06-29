@@ -240,5 +240,5 @@ async function updateReferenceTable({notification, refId, type}){
 
 module.exports={
     sendNotification,
-    titles:nofiticationTitles   
+    titles:nofiticationTitles
 }
