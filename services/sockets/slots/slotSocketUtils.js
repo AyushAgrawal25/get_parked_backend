@@ -108,6 +108,10 @@ async function updateSlotOnMap(slotId){
             return;
         }
 
+        const slotAllotedSpace=await vehicleUtils.getAllotedArea(slotData.id);
+        const availableSpace=slotData.length*slotData.breadth-slotAllotedSpace;
+        slotData["availableSpace"]=availableSpace;
+        
         ioUtils.emitter().to("slot_"+slotId).emit("slots-update", [slotData]);
     } catch (error) {
         console.log("Update Slots on Map");
