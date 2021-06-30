@@ -5,6 +5,7 @@ const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const userUtils = require('../users/userUtils');
 const vehicleUtils = require('../vehicles/vehicleUtils');
 const notificationUtils = require('./notificationUtils');
+const notificationSelectionModel = require('./notificationSelectionModel');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -17,7 +18,7 @@ router.get("/", tokenUtils.verify, async(req, res)=>{
             where:{
                 recieverUserId:parseInt(userData.id)
             },
-            select:notificationUtils.selection
+            select:notificationSelectionModel.selection
         });
 
         res.statusCode=notificationGetStatus.success.code;

@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 const userUtils = require('../users/userUtils');
 const vehicleUtils = require('../vehicles/vehicleUtils');
+const notificationSocketUtils=require('./../../../services/sockets/notifications/notificationSocketUtils');
 
 const nofiticationTitles={
     parkingRequest:{
@@ -86,9 +87,6 @@ async function sendNotification({
             notification:notification,
             type:type
         });
-
-        // TODO: Update Notification Sockets.
-
     } catch (error) {
         console.log(error);
     }
@@ -96,411 +94,397 @@ async function sendNotification({
 
 async function updateReferenceTable({notification, refId, type}){
     switch (type) {
-        case NotificationType.ParkingRequest:
-        await prisma.slotParkingRequest.update({
-            where:{
-                id:refId
-            },
-            data:{
-                requestNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.ParkingRequest:{
+            const parkingReqData=await prisma.slotParkingRequest.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    requestNotificationId:notification.id
+                },
+                select:{
+                    requestNotificationId:true,
+                    responseNotificationId:true
+                }
+            });
+    
+            notificationSocketUtils.updateUser(parkingReqData.requestNotificationId);
+            notificationSocketUtils.updateUser(parkingReqData.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.ParkingRequestResponse:
-        await prisma.slotParkingRequest.update({
-            where:{
-                id:refId
-            },
-            data:{
-                responseNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.ParkingRequestResponse:{
+            const parkingReqData=await prisma.slotParkingRequest.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    responseNotificationId:notification.id
+                },
+                select:{
+                    requestNotificationId:true,
+                    responseNotificationId:true
+                }
+            });
+            notificationSocketUtils.updateUser(parkingReqData.requestNotificationId);
+            notificationSocketUtils.updateUser(parkingReqData.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.Booking_ForUser:
-        await prisma.slotBooking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forUser_BookingNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.Booking_ForUser:{
+            const bookingData=await prisma.slotBooking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forUser_BookingNotificationId:notification.id
+                },
+                select:{
+                    forSlot_BookingNotificationId:true,
+                    forSlot_CancellationNotificationId:true,
+                    forUser_BookingNotificationId:true,
+                    forUser_CancellationNotificationId:true,
+                    parkingRequest:{
+                        select:{
+                            requestNotificationId:true,
+                            responseNotificationId:true
+                        }
+                    }
+                }
+            });
+    
+            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.Booking_ForSlot:
-        await prisma.slotBooking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forSlot_BookingNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.Booking_ForSlot:{
+            const bookingData= await prisma.slotBooking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forSlot_BookingNotificationId:notification.id
+                },
+                select:{
+                    forSlot_BookingNotificationId:true,
+                    forSlot_CancellationNotificationId:true,
+                    forUser_BookingNotificationId:true,
+                    forUser_CancellationNotificationId:true,
+                    parkingRequest:{
+                        select:{
+                            requestNotificationId:true,
+                            responseNotificationId:true
+                        }
+                    }
+                }
+            });
+            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.BookingCancellation_ForSlot:
-        await prisma.slotBooking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forSlot_CancellationNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.BookingCancellation_ForSlot:{
+            const bookingData=await prisma.slotBooking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forSlot_CancellationNotificationId:notification.id
+                },
+                select:{
+                    forSlot_BookingNotificationId:true,
+                    forSlot_CancellationNotificationId:true,
+                    forUser_BookingNotificationId:true,
+                    forUser_CancellationNotificationId:true,
+                    parkingRequest:{
+                        select:{
+                            requestNotificationId:true,
+                            responseNotificationId:true
+                        }
+                    }
+                }
+            });
+            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.BookingCancellation_ForUser:
-        await prisma.slotBooking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forUser_CancellationNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.BookingCancellation_ForUser:{
+            const bookingData=await prisma.slotBooking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forUser_CancellationNotificationId:notification.id
+                },
+                select:{
+                    forSlot_BookingNotificationId:true,
+                    forSlot_CancellationNotificationId:true,
+                    forUser_BookingNotificationId:true,
+                    forUser_CancellationNotificationId:true,
+                    parkingRequest:{
+                        select:{
+                            requestNotificationId:true,
+                            responseNotificationId:true
+                        }
+                    }
+                }
+            });
+            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.Parking_ForSlot:
-        await prisma.slotParking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forSlot_ParkingNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.Parking_ForSlot:{
+            const parkingData=await prisma.slotParking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forSlot_ParkingNotificationId:notification.id
+                },
+                select:{
+                    forSlot_ParkingNotificationId:true,
+                    forSlot_WithdrawNotificationId:true,
+                    forUser_ParkingNotificationId:true,
+                    forUser_WithdrawNotificationId:true,
+                    booking:{
+                        select:{
+                            forSlot_BookingNotificationId:true,
+                            forSlot_CancellationNotificationId:true,
+                            forUser_BookingNotificationId:true,
+                            forUser_CancellationNotificationId:true,
+                            parkingRequest:{
+                                select:{
+                                    requestNotificationId:true,
+                                    responseNotificationId:true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.Parking_ForUser:
-        await prisma.slotParking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forUser_ParkingNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.Parking_ForUser:{
+            const parkingData=await prisma.slotParking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forUser_ParkingNotificationId:notification.id
+                },
+                select:{
+                    forSlot_ParkingNotificationId:true,
+                    forSlot_WithdrawNotificationId:true,
+                    forUser_ParkingNotificationId:true,
+                    forUser_WithdrawNotificationId:true,
+                    booking:{
+                        select:{
+                            forSlot_BookingNotificationId:true,
+                            forSlot_CancellationNotificationId:true,
+                            forUser_BookingNotificationId:true,
+                            forUser_CancellationNotificationId:true,
+                            parkingRequest:{
+                                select:{
+                                    requestNotificationId:true,
+                                    responseNotificationId:true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.ParkingWithdraw_ForSlot:
-        await prisma.slotParking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forSlot_WithdrawNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.ParkingWithdraw_ForSlot:{
+            const parkingData=await prisma.slotParking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forSlot_WithdrawNotificationId:notification.id
+                },
+                select:{
+                    forSlot_ParkingNotificationId:true,
+                    forSlot_WithdrawNotificationId:true,
+                    forUser_ParkingNotificationId:true,
+                    forUser_WithdrawNotificationId:true,
+                    booking:{
+                        select:{
+                            forSlot_BookingNotificationId:true,
+                            forSlot_CancellationNotificationId:true,
+                            forUser_BookingNotificationId:true,
+                            forUser_CancellationNotificationId:true,
+                            parkingRequest:{
+                                select:{
+                                    requestNotificationId:true,
+                                    responseNotificationId:true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.ParkingWithdraw_ForUser:
-        await prisma.slotParking.update({
-            where:{
-                id:refId
-            },
-            data:{
-                forUser_WithdrawNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.ParkingWithdraw_ForUser:{
+            const parkingData=await prisma.slotParking.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    forUser_WithdrawNotificationId:notification.id
+                },
+                select:{
+                    forSlot_ParkingNotificationId:true,
+                    forSlot_WithdrawNotificationId:true,
+                    forUser_ParkingNotificationId:true,
+                    forUser_WithdrawNotificationId:true,
+                    booking:{
+                        select:{
+                            forSlot_BookingNotificationId:true,
+                            forSlot_CancellationNotificationId:true,
+                            forUser_BookingNotificationId:true,
+                            forUser_CancellationNotificationId:true,
+                            parkingRequest:{
+                                select:{
+                                    requestNotificationId:true,
+                                    responseNotificationId:true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
+            
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
+            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+            break;
+        }
         
-        case NotificationType.Transaction:
-        await prisma.transaction.update({
-            where:{
-                id:refId
-            },
-            data:{
-                notificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.Transaction:{
+            const transactionData=await prisma.transaction.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    notificationId:notification.id
+                }
+            });
+            
+            notificationSocketUtils(transactionData.notificationId);
+            break;
+        }
         
-        case NotificationType.TransactionRequest:
-        await prisma.transactionRequests.update({
-            where:{
-                id:refId
-            },
-            data:{
-                requestNotificationId:notificationId
-            }
-        });
-        break;
+        case NotificationType.TransactionRequest:{
+            const transactionReqData=await prisma.transactionRequests.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    requestNotificationId:notificationId
+                },
+                select:{
+                    requestNotificationId:true,
+                    requestedFromTransactionId:true
+                }
+            });
+            notificationSocketUtils.updateUser(transactionReqData.requestNotificationId);
+            notificationSocketUtils.updateUser(transactionReqData.requestedFromTransactionId);
+            break;
+        }
         
-        case NotificationType.TransactionRequestResponse:
-        await prisma.transactionRequests.update({
-            where:{
-                id:refId
-            },
-            data:{
-                responseNotificationId:notification.id
-            }
-        });
-        break;
+        case NotificationType.TransactionRequestResponse:{
+            const transactionReqData=await prisma.transactionRequests.update({
+                where:{
+                    id:refId
+                },
+                data:{
+                    responseNotificationId:notification.id
+                },
+                select:{
+                    requestNotificationId:true,
+                    requestedFromTransactionId:true
+                }
+            });
+            notificationSocketUtils.updateUser(transactionReqData.requestNotificationId);
+            notificationSocketUtils.updateUser(transactionReqData.requestedFromTransactionId);
+            break;
+        }
     }
 }
 
 module.exports={
     sendNotification,
     titles:nofiticationTitles,
-    selection:{
-        id:true,
-        recieverUserId:true,
-        recieverAccountType:true,
-        senderUserId:true,
-        senderAccountType:true,
-        senderUser:{
-            select:userUtils.selectionWithSlot
-        },
-        type:true,
-        time:true,
-        status:true,
-
-        // It includes txns of slots.
-        bookingCancellation_ForSlot:{
-            include:{
-                fromSlotToAppTransaction:{
-                    include:{
-                        transactionNonReal:true,
-                        transactionReal:true
-                    }
-                },
-                fromSlotToUserTransaction:{
-                    include:{
-                        transactionNonReal:true,
-                        transactionReal:true
-                    }
-                },
-                parking:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // It includes of txns of user only.
-        bookingCancellation_ForUser:{
-            include:{
-                fromUserToSlotTransaction:{
-                    include:{
-                        transactionNonReal:true,
-                        transactionReal:true
-                    }
-                },
-                parking:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // It includes txns of slot only.
-        booking_ForSlot:{
-            include:{
-                fromSlotToAppTransaction:{
-                    include:{
-                        transactionNonReal:true,
-                        transactionReal:true
-                    }
-                },
-                fromSlotToUserTransaction:{
-                    include:{
-                        transactionNonReal:true,
-                        transactionReal:true
-                    }
-                },
-                parking:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // it includes txns of user only.
-        booking_ForUser:{
-            include:{
-                fromUserToSlotTransaction:{
-                    include:{
-                        transactionNonReal:true,
-                        transactionReal:true
-                    }
-                },
-                parking:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // This is recieved by slot 
-        // It includes slot txns only.
-        parkingRequest:{
-            include:{
-                booking:{
-                    include:{
-                        fromSlotToAppTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },
-                        fromSlotToUserTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },
-                        parking:true,
-                    }
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                },
-            },
-        },
-        // This is recieved by user 
-        // It includes user txns only.
-        parkingRequest_withResponse:{
-            include:{
-                booking:{
-                    include:{
-                        fromUserToSlotTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },
-                        parking:true        
-                    }
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // This includes booking and slot txns only.
-        parking_ForSlot:{
-            include:{
-                booking:{
-                    include:{
-                        fromSlotToAppTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },
-                        fromSlotToUserTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },        
-                    }
-                },
-                slotRatingReview:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // This is recieved by user and includes only user txns
-        parking_ForUser:{
-            include:{
-                booking:{
-                    include:{
-                        fromUserToSlotTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },        
-                    }
-                },
-                slotRatingReview:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // This is recieved by slot booking and txns.
-        parkingWithdraw_ForSlot:{
-            include:{
-                booking:{
-                    include:{
-                        fromSlotToAppTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },
-                        fromSlotToUserTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },        
-                    }
-                },
-                slotRatingReview:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        // This is recieved by user and includes booking user txns
-        parkingWithdraw_ForUser:{
-            include:{
-                booking:{
-                    include:{
-                        fromUserToSlotTransaction:{
-                            include:{
-                                transactionNonReal:true,
-                                transactionReal:true
-                            }
-                        },        
-                    }
-                },
-                slotRatingReview:true,
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
-        },
-        transaction:{
-            include:{
-                user:{
-                    select:userUtils.selectionWithSlot,
-                },
-                transactionNonReal:{
-                    include:{
-                        withUser:{
-                            select:userUtils.selectionWithSlot,
-                        }
-                    }
-                },
-                transactionReal:true,
-            }
-        },
-        transactionRequest:{
-            include:{
-                requestedFromTransaction:true,
-                requestedFromUser:{
-                    select:userUtils.selectionWithSlot
-                },
-                requesterTransaction:true,
-                requesterUser:{
-                    select:userUtils.selectionWithSlot
-                },
-            }
-        },
-        transactionRequest_withResponse:{
-            include:{
-                requestedFromTransaction:true,
-                requestedFromUser:{
-                    select:userUtils.selectionWithSlot
-                },
-                requesterTransaction:true,
-                requesterUser:{
-                    select:userUtils.selectionWithSlot
-                },
-            }
-        }
-    }
 }
