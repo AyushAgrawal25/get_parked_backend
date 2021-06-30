@@ -1,12 +1,15 @@
 require('dotenv').config();
 const express = require('express');
-const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType } = require('@prisma/client');
+const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType, NotificationType } = require('@prisma/client');
 
 const slotUtils = require('./../slots/slotUtils');
 const userUtils = require('./../users/userUtils');
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const transactionUtils = require('./transactionUtils');
 const transactionSocketUtils=require('./../../../services/sockets/transactions/transactionSocketUtils');
+const notificationUtils = require('../notifications/notificationUtils');
+const fcmUtils=require('./../../../services/notifications/FCM-Notifications/fcmUtils');
+const domain = require('../../../services/domain');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -222,21 +225,53 @@ router.post('/request', tokenUtils.verify, async(req, res)=>{
                 requestedFromUserId:parseInt(req.body.requestedFromUserId),
                 note:req.body.note,
                 status:0
+            },
+            include:{
+                requesterUser:{
+                    select:userUtils.selectionWithSlot
+                },
+                requestedFromUser:{
+                    select:userUtils.selectionWithSlot
+                }
             }
         });
 
-        if(txnReq){
-            res.statusCode=txnReqPostStatus.success.code;
+        if(!txnReq){
+            res.statusCode=txnReqPostStatus.serverError.code;
             res.json({
-                message:txnReqPostStatus.success.message,
-                data:txnReq
+                message:txnReqPostStatus.serverError.message
             });
             return;
         }
-        
-        res.statusCode=txnReqPostStatus.serverError.code;
+
+        notificationUtils.sendNotification({
+            refId:txnReq.id,
+            recieverAccountType:txnReq.requestedFromAccountType,
+            recieverUserId:txnReq.requestedFromUserId,
+            refData:txnReq,
+            senderAccountType:txnReq.requesterAccountType,
+            senderUserId:txnReq.requestedFromUserId,
+            type:NotificationType.TransactionRequest,
+            status:0
+        });
+
+        try {
+            fcmUtils.sendTo({
+                body:txnReq.requesterUser.userDetails.firstName+" "+txnReq.requesterUser.userDetails.lastName,
+                data:txnReq,
+                imgUrl:(txnReq.requesterUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+txnReq.requesterUser.userDetails.picThumbnailUrl:null,
+                title:notificationUtils.titles.transactionRequest.forRequestee(txnReq.amount),
+                token:txnReq.requestedFromUser.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notification block");
+            console.log(error);
+        }
+
+        res.statusCode=txnReqPostStatus.success.code;
         res.json({
-            message:txnReqPostStatus.serverError.message
+            message:txnReqPostStatus.success.message,
+            data:txnReq
         });
     } catch (error) {
         res.statusCode=txnReqPostStatus.serverError.code;
@@ -292,9 +327,41 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 },
                 data:{
                     status:2
+                },
+                include:{
+                    requesterUser:{
+                        select:userUtils.selectionWithSlot
+                    },
+                    requestedFromUser:{
+                        select:userUtils.selectionWithSlot
+                    }
                 }
             });
             if(updateRequest){
+                notificationUtils.sendNotification({
+                    refId:updateRequest.id,
+                    recieverAccountType:updateRequest.requesterAccountType,
+                    recieverUserId:updateRequest.requesterUserId,
+                    refData:updateRequest,
+                    senderAccountType:updateRequest.requestedFromAccountType,
+                    senderUserId:updateRequest.requestedFromUserId,
+                    type:NotificationType.TransactionRequestResponse,
+                    status:0
+                });
+
+                try {
+                    fcmUtils.sendTo({
+                        body:updateRequest.requestedFromUser.userDetails.firstName+" "+txnReq.requesterUser.userDetails.lastName,
+                        data:updateRequest,
+                        imgUrl:(updateRequest.requestedFromUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+updateRequest.requestedFromUser.userDetails.picThumbnailUrl:null,
+                        title:notificationUtils.titles.transactionRequestResponse.forRequester(updateRequest.amount),
+                        token:updateRequest.requesterUser.userNotification.token
+                    });
+                } catch (error) {
+                    console.log("FCM notification block");
+                    console.log(error);
+                }
+
                 res.statusCode=txnReqResponseStatus.success.code;
                 res.json({
                     message:txnReqResponseStatus.success.message,
@@ -416,7 +483,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
-        // TODO: Make changes accordint to new prisma scheme
+        // TODO: Make changes according to new prisma scheme
         const updateRequest=await prisma.transactionRequests.update({
             where:{
                 id:txnReqData.id
@@ -425,6 +492,14 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 status:1,
                 requesterTransactionId:fromTxnData.id,
                 requestedFromTransactionId:withTxnData.id
+            },
+            include:{
+                requesterUser:{
+                    select:userUtils.selectionWithSlot
+                },
+                requestedFromUser:{
+                    select:userUtils.selectionWithSlot
+                }
             }
         });
         if(!updateRequest){
@@ -441,27 +516,40 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 }
             });
 
-            const delNonRealTxn=await prisma.transactionNonReal.deleteMany({
-                where:{
-                    OR:[
-                        {
-                            id:nonRealTxnCreate[0].id,
-                        },
-                        {
-                            id:nonRealTxnCreate[1].id,
-                        }
-                    ]
-                }
-            });
-            
-            // TODO: Update Transactions Sockets.
-            
             res.statusCode=txnReqResponseStatus.serverError.code;
             res.json({
                 message:txnReqResponseStatus.serverError.message
             });
             return;
         }
+
+        transactionSocketUtils.updateUser(fromTxnData.userId, fromTxnData.id);
+        transactionSocketUtils.updateUser(withTxnData.userId, withTxnData.id);
+
+        notificationUtils.sendNotification({
+            refId:updateRequest.id,
+            recieverAccountType:updateRequest.requesterAccountType,
+            recieverUserId:updateRequest.requesterUserId,
+            refData:updateRequest,
+            senderAccountType:updateRequest.requestedFromAccountType,
+            senderUserId:updateRequest.requestedFromUserId,
+            type:NotificationType.TransactionRequestResponse,
+            status:0
+        });
+
+        try {
+            fcmUtils.sendTo({
+                body:updateRequest.requestedFromUser.userDetails.firstName+" "+updateRequest.requesterUser.userDetails.lastName,
+                data:updateRequest,
+                imgUrl:(updateRequest.requestedFromUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+updateRequest.requestedFromUser.userDetails.picThumbnailUrl:null,
+                title:notificationUtils.titles.transactionRequestResponse.forRequester(updateRequest.amount),
+                token:updateRequest.requesterUser.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notification block");
+            console.log(error);
+        }
+
         res.statusCode=txnReqResponseStatus.success.code;
         res.json({
             message:txnReqResponseStatus.success.message,

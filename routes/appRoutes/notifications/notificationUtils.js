@@ -452,15 +452,15 @@ async function updateReferenceTable({notification, refId, type}){
                     id:refId
                 },
                 data:{
-                    requestNotificationId:notificationId
+                    requestNotificationId:notification.id
                 },
                 select:{
                     requestNotificationId:true,
-                    requestedFromTransactionId:true
+                    responseNotificationId:true,
                 }
             });
             notificationSocketUtils.updateUser(transactionReqData.requestNotificationId);
-            notificationSocketUtils.updateUser(transactionReqData.requestedFromTransactionId);
+            notificationSocketUtils.updateUser(transactionReqData.responseNotificationId);
             break;
         }
         
@@ -474,11 +474,11 @@ async function updateReferenceTable({notification, refId, type}){
                 },
                 select:{
                     requestNotificationId:true,
-                    requestedFromTransactionId:true
+                    responseNotificationId:true,
                 }
             });
             notificationSocketUtils.updateUser(transactionReqData.requestNotificationId);
-            notificationSocketUtils.updateUser(transactionReqData.requestedFromTransactionId);
+            notificationSocketUtils.updateUser(transactionReqData.responseNotificationId);
             break;
         }
     }
