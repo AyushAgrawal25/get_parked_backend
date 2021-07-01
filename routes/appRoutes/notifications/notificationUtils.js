@@ -71,8 +71,11 @@ async function sendNotification({
                     recieverUserId:recieverUserId,
                     recieverAccountType:recieverAccountType,
                     type:type,
-                    status:status
-                }
+                    status:status,
+                    parkingRequest:{
+
+                    }
+                },
             });
         } catch (error) {
             console.log(error);
@@ -92,6 +95,68 @@ async function sendNotification({
     }
 }   
 
+function updateParkingReqs(parkingReqData){
+    notificationSocketUtils.updateUser(parkingReqData.requestNotificationId);           
+    notificationSocketUtils.updateUser(parkingReqData.responseNotificationId);
+}   
+
+function updateBookings(bookingData){
+    notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
+    notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
+    notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
+    notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
+
+    updateParkingReqs(bookingData.parkingRequest);
+}   
+
+function updateParkings(parkingData){
+    notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
+    notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
+    notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
+    notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
+
+    updateBookings(parkingData.booking);
+} 
+
+function updateTransactionReqs(transactionReqData){
+    notificationSocketUtils.updateUser(transactionReqData.requestNotificationId);
+    notificationSocketUtils.updateUser(transactionReqData.responseNotificationId);
+}
+
+function updateTransactions(transactionData){
+    notificationSocketUtils(transactionData.notificationId);
+}
+
+const parkingReqsSelection={
+    requestNotificationId:true,
+    responseNotificationId:true
+};
+
+const bookingsSelection={
+    forSlot_BookingNotificationId:true,
+    forSlot_CancellationNotificationId:true,
+    forUser_BookingNotificationId:true,
+    forUser_CancellationNotificationId:true,
+    parkingRequest:{
+        select:parkingReqsSelection
+    }
+}
+
+const parkingsSelection={
+    forSlot_ParkingNotificationId:true,
+    forSlot_WithdrawNotificationId:true,
+    forUser_ParkingNotificationId:true,
+    forUser_WithdrawNotificationId:true,
+    booking:{
+        select:bookingsSelection
+    }
+}
+
+const transactionRequestsSelection={
+    requestNotificationId:true,
+    responseNotificationId:true,
+};
+
 async function updateReferenceTable({notification, refId, type}){
     switch (type) {
         case NotificationType.ParkingRequest:{
@@ -102,14 +167,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     requestNotificationId:notification.id
                 },
-                select:{
-                    requestNotificationId:true,
-                    responseNotificationId:true
-                }
+                select:parkingReqsSelection
             });
-    
-            notificationSocketUtils.updateUser(parkingReqData.requestNotificationId);
-            notificationSocketUtils.updateUser(parkingReqData.responseNotificationId);
+
+            updateParkingReqs(parkingReqData);
             break;
         }
         
@@ -121,13 +182,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     responseNotificationId:notification.id
                 },
-                select:{
-                    requestNotificationId:true,
-                    responseNotificationId:true
-                }
+                select:parkingReqsSelection
             });
-            notificationSocketUtils.updateUser(parkingReqData.requestNotificationId);
-            notificationSocketUtils.updateUser(parkingReqData.responseNotificationId);
+
+            updateParkingReqs(parkingReqData);
             break;
         }
         
@@ -139,27 +197,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forUser_BookingNotificationId:notification.id
                 },
-                select:{
-                    forSlot_BookingNotificationId:true,
-                    forSlot_CancellationNotificationId:true,
-                    forUser_BookingNotificationId:true,
-                    forUser_CancellationNotificationId:true,
-                    parkingRequest:{
-                        select:{
-                            requestNotificationId:true,
-                            responseNotificationId:true
-                        }
-                    }
-                }
+                select:bookingsSelection
             });
-    
-            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
             
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            updateBookings(bookingData);
             break;
         }
         
@@ -171,26 +212,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forSlot_BookingNotificationId:notification.id
                 },
-                select:{
-                    forSlot_BookingNotificationId:true,
-                    forSlot_CancellationNotificationId:true,
-                    forUser_BookingNotificationId:true,
-                    forUser_CancellationNotificationId:true,
-                    parkingRequest:{
-                        select:{
-                            requestNotificationId:true,
-                            responseNotificationId:true
-                        }
-                    }
-                }
+                select:bookingsSelection
             });
-            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
             
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            updateBookings(bookingData);
             break;
         }
         
@@ -202,26 +227,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forSlot_CancellationNotificationId:notification.id
                 },
-                select:{
-                    forSlot_BookingNotificationId:true,
-                    forSlot_CancellationNotificationId:true,
-                    forUser_BookingNotificationId:true,
-                    forUser_CancellationNotificationId:true,
-                    parkingRequest:{
-                        select:{
-                            requestNotificationId:true,
-                            responseNotificationId:true
-                        }
-                    }
-                }
+                select:bookingsSelection
             });
-            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
             
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            updateBookings(bookingData);
             break;
         }
         
@@ -233,26 +242,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forUser_CancellationNotificationId:notification.id
                 },
-                select:{
-                    forSlot_BookingNotificationId:true,
-                    forSlot_CancellationNotificationId:true,
-                    forUser_BookingNotificationId:true,
-                    forUser_CancellationNotificationId:true,
-                    parkingRequest:{
-                        select:{
-                            requestNotificationId:true,
-                            responseNotificationId:true
-                        }
-                    }
-                }
+                select:bookingsSelection
             });
-            notificationSocketUtils.updateUser(bookingData.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(bookingData.forUser_CancellationNotificationId);
             
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(bookingData.parkingRequest.responseNotificationId);
+            updateBookings(bookingData);
             break;
         }
         
@@ -264,39 +257,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forSlot_ParkingNotificationId:notification.id
                 },
-                select:{
-                    forSlot_ParkingNotificationId:true,
-                    forSlot_WithdrawNotificationId:true,
-                    forUser_ParkingNotificationId:true,
-                    forUser_WithdrawNotificationId:true,
-                    booking:{
-                        select:{
-                            forSlot_BookingNotificationId:true,
-                            forSlot_CancellationNotificationId:true,
-                            forUser_BookingNotificationId:true,
-                            forUser_CancellationNotificationId:true,
-                            parkingRequest:{
-                                select:{
-                                    requestNotificationId:true,
-                                    responseNotificationId:true
-                                }
-                            }
-                        }
-                    }
-                }
+                select:parkingsSelection
             });
-            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+
+            updateParkings(parkingData);
             break;
         }
         
@@ -308,39 +272,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forUser_ParkingNotificationId:notification.id
                 },
-                select:{
-                    forSlot_ParkingNotificationId:true,
-                    forSlot_WithdrawNotificationId:true,
-                    forUser_ParkingNotificationId:true,
-                    forUser_WithdrawNotificationId:true,
-                    booking:{
-                        select:{
-                            forSlot_BookingNotificationId:true,
-                            forSlot_CancellationNotificationId:true,
-                            forUser_BookingNotificationId:true,
-                            forUser_CancellationNotificationId:true,
-                            parkingRequest:{
-                                select:{
-                                    requestNotificationId:true,
-                                    responseNotificationId:true
-                                }
-                            }
-                        }
-                    }
-                }
+                select:parkingsSelection
             });
-            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+
+            updateParkings(parkingData);
             break;
         }
         
@@ -352,39 +287,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forSlot_WithdrawNotificationId:notification.id
                 },
-                select:{
-                    forSlot_ParkingNotificationId:true,
-                    forSlot_WithdrawNotificationId:true,
-                    forUser_ParkingNotificationId:true,
-                    forUser_WithdrawNotificationId:true,
-                    booking:{
-                        select:{
-                            forSlot_BookingNotificationId:true,
-                            forSlot_CancellationNotificationId:true,
-                            forUser_BookingNotificationId:true,
-                            forUser_CancellationNotificationId:true,
-                            parkingRequest:{
-                                select:{
-                                    requestNotificationId:true,
-                                    responseNotificationId:true
-                                }
-                            }
-                        }
-                    }
-                }
+                select:parkingsSelection
             });
-            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+
+            updateParkings(parkingData);
             break;
         }
         
@@ -396,39 +302,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     forUser_WithdrawNotificationId:notification.id
                 },
-                select:{
-                    forSlot_ParkingNotificationId:true,
-                    forSlot_WithdrawNotificationId:true,
-                    forUser_ParkingNotificationId:true,
-                    forUser_WithdrawNotificationId:true,
-                    booking:{
-                        select:{
-                            forSlot_BookingNotificationId:true,
-                            forSlot_CancellationNotificationId:true,
-                            forUser_BookingNotificationId:true,
-                            forUser_CancellationNotificationId:true,
-                            parkingRequest:{
-                                select:{
-                                    requestNotificationId:true,
-                                    responseNotificationId:true
-                                }
-                            }
-                        }
-                    }
-                }
+                select:parkingsSelection
             });
-            notificationSocketUtils.updateUser(parkingData.forSlot_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forSlot_WithdrawNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_ParkingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.forUser_WithdrawNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forSlot_CancellationNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_BookingNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.forUser_CancellationNotificationId);
-            
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.requestNotificationId);
-            notificationSocketUtils.updateUser(parkingData.booking.parkingRequest.responseNotificationId);
+
+            updateParkings(parkingData);
             break;
         }
         
@@ -442,7 +319,7 @@ async function updateReferenceTable({notification, refId, type}){
                 }
             });
             
-            notificationSocketUtils(transactionData.notificationId);
+            updateTransactions(transactionData);
             break;
         }
         
@@ -454,13 +331,9 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     requestNotificationId:notification.id
                 },
-                select:{
-                    requestNotificationId:true,
-                    responseNotificationId:true,
-                }
+                select:transactionRequestsSelection
             });
-            notificationSocketUtils.updateUser(transactionReqData.requestNotificationId);
-            notificationSocketUtils.updateUser(transactionReqData.responseNotificationId);
+            updateTransactionReqs(transactionReqData);
             break;
         }
         
@@ -472,13 +345,10 @@ async function updateReferenceTable({notification, refId, type}){
                 data:{
                     responseNotificationId:notification.id
                 },
-                select:{
-                    requestNotificationId:true,
-                    responseNotificationId:true,
-                }
+                select:transactionRequestsSelection
             });
-            notificationSocketUtils.updateUser(transactionReqData.requestNotificationId);
-            notificationSocketUtils.updateUser(transactionReqData.responseNotificationId);
+
+            updateTransactionReqs(transactionReqData);
             break;
         }
     }

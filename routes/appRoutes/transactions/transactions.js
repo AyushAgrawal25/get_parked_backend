@@ -260,7 +260,7 @@ router.post('/request', tokenUtils.verify, async(req, res)=>{
                 body:txnReq.requesterUser.userDetails.firstName+" "+txnReq.requesterUser.userDetails.lastName,
                 data:txnReq,
                 imgUrl:(txnReq.requesterUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+txnReq.requesterUser.userDetails.picThumbnailUrl:null,
-                title:notificationUtils.titles.transactionRequest.forRequestee(txnReq.amount),
+                title:notificationUtils.titles.transactionRequest.forRequestedFrom(txnReq.amount),
                 token:txnReq.requestedFromUser.userNotification.token
             });
         } catch (error) {
