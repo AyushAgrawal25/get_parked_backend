@@ -9,6 +9,9 @@ const slotUtils = require('../slots/slotUtils');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const contactsRoute=require('./contacts/contacts');
+router.use('/contacts', contactsRoute);
+
 router.post("/create", apiUtils.apiValidation, async (req, res) => {
     try {
         const resp = await prisma.user.create({

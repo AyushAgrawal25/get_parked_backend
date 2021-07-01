@@ -17,6 +17,8 @@ const prisma = new PrismaClient();
 router.get("/:slotId", tokenUtils.verify, async(req, res)=>{
     const userData = req.tokenData;
     try {
+        // TODO: seperate data according vehicle types.
+        // TODO: add overall rating of each type.
         const reviews=await prisma.slotRatingReview.findMany({
             where:{
                 slotId:parseInt(req.params.slotId)

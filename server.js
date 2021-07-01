@@ -12,6 +12,7 @@ const userSocketUtils = require('./services/sockets/users/userSocketUtils');
 const tokenUtils = require('./services/tokenUtils/tokenUtils.js');
 
 const app = express();
+
 const args = parseArgs(process.argv.slice(2));
 const { name = 'default', port = '5000' } = args;
 
@@ -22,7 +23,9 @@ const io = ioUtils.init(server);
 
 //Adding services
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+    limit:'50mb'
+}));
 
 app.get("/", async (req, res) => {
     try {

@@ -274,6 +274,7 @@ router.post('/request', tokenUtils.verify, async(req, res)=>{
             data:txnReq
         });
     } catch (error) {
+        console.log(error);
         res.statusCode=txnReqPostStatus.serverError.code;
         res.json({
             message:txnReqPostStatus.serverError.message
