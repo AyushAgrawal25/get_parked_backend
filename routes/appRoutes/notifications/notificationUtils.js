@@ -37,12 +37,12 @@ const nofiticationTitles={
         forSlot:"Parking Completed"
     },
     transactionRequest:{
-        forRequestee:(amount)=>{
+        forRequestedFrom:(amount)=>{
             return "You have a Money Request of ₹ " + amount + " From";
         }
     },
     transactionRequestResponse:{
-        forRequestee:(amount)=>{
+        forRequestedFrom:(amount)=>{
             return "Payment Requested Accepted ₹ "+amount+" Credited.";
         },
         forRequester:(amount)=>{

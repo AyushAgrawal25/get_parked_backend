@@ -14,10 +14,12 @@ const prisma = new PrismaClient();
 const parkingRequestsRoute=require('./parkingRequests/parkingRequests');
 const bookingsRoute=require('./bookings/bookings');
 const parkingsRoute=require('./parkings/parkings');
+const ratingsReviews=require('./ratingsReviews/ratingsReviews');
 
 router.use("/parkingRequests", parkingRequestsRoute);
 router.use("/bookings", bookingsRoute);
 router.use("/parkings", parkingsRoute);
+router.use("/ratingsReviews", ratingsReviews);
 
 router.post("/create", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
