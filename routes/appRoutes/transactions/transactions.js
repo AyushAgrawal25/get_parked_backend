@@ -352,7 +352,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
 
                 try {
                     fcmUtils.sendTo({
-                        body:updateRequest.requestedFromUser.userDetails.firstName+" "+txnReq.requesterUser.userDetails.lastName,
+                        body:updateRequest.requestedFromUser.userDetails.firstName+" "+updateRequest.requesterUser.userDetails.lastName,
                         data:updateRequest,
                         imgUrl:(updateRequest.requestedFromUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+updateRequest.requestedFromUser.userDetails.picThumbnailUrl:null,
                         title:notificationUtils.titles.transactionRequestResponse.forRequester(updateRequest.amount),
