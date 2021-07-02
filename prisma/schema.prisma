@@ -38,6 +38,9 @@ model User {
   recievedNotifications Notifications[] @relation(name: "NotificationRecieve")
   sentNotifications     Notifications[] @relation(name: "NotificationSend")
 
+  queries     UserQuery[]  @relation("User_Queries")
+  faqsUpVotes FAQUpVotes[] @relation("Users Upvotes")
+
   @@map("users")
 }
 
@@ -518,4 +521,45 @@ enum NotificationType {
 
   TransactionRequest
   TransactionRequestResponse
+}
+
+model UserQuery {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(name: "User_Queries", fields: [userId], references: [id])
+  userId Int
+
+  query       String
+  description String?
+  answer      String?
+  status      Int
+
+  @@map("user_queries")
+}
+
+model FAQS {
+  id           Int          @id @default(autoincrement())
+  query        String
+  description  String
+  answer       String
+  upVotesCount Int          @default(0)
+  status       Int
+  upVotes      FAQUpVotes[] @relation("FAQs Upvotes")
+
+  @@map("faqs")
+}
+
+model FAQUpVotes {
+  id Int @id @default(autoincrement())
+
+  faq   FAQS @relation(name: "FAQs Upvotes", fields: [faqId], references: [id])
+  faqId Int
+
+  user   User @relation(name: "Users Upvotes", fields: [userId], references: [id])
+  userId Int
+
+  status Int
+
+  @@unique([faqId, userId])
+  @@map("faq_upvotes")
 }
