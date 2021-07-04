@@ -46,4 +46,64 @@ const faqsGetStatus={
     }
 }
 
+router.post('/upvote', tokenUtils.verify, async(req, res)=>{
+    const userData=req.tokenData;
+    try {
+        const upVoteCreate=await prisma.fAQUpVotes.create({
+            data:{
+                userId:parseInt(userData.id),
+                faqId:parseInt(req.body.faqId),
+                status:1
+            },
+            select:{
+                faq:true
+            }
+        });
+
+        if(!upVoteCreate){
+            res.statusCode=faqUpVoteStatus.serverError.code;
+            res.json({
+                message:faqUpVoteStatus.serverError.message
+            });
+        }
+
+        const faqUpdate=await prisma.fAQS.update({
+            where:{
+                id:upVoteCreate.faq.id,
+            },
+            data:{
+                upVotesCount:upVoteCreate.faq.upVotesCount+1
+            }
+        });
+
+        res.statusCode=faqUpVoteStatus.success.code;
+        res.json({
+            message:faqUpVoteStatus.success.message,
+            data:faqUpdate
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=faqUpVoteStatus.serverError.code;
+        res.json({
+            message:faqUpVoteStatus.serverError.message,
+            error:error
+        });
+    }
+});
+
+const faqUpVoteStatus={
+    success:{
+        code:200,
+        message:"FAQ upvoted Successfully..."
+    },
+    alreadyUpVoted:{
+        code:422,
+        message:"Already UpVoted"
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
+
 module.exports=router;
