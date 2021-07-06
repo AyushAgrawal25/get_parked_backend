@@ -81,7 +81,7 @@ async function onChangeCameraPosition(socket, data){
         slotsUpdateFns.push(slotUpdate);
     });
 
-    await Promise.all(slotsUpdateFns);
+    // await Promise.all(slotsUpdateFns);
     // console.log("Updated....");
 
     // slots.forEach((slot)=>{

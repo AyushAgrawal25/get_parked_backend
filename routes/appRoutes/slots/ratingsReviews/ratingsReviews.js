@@ -10,6 +10,7 @@ const vehicleUtils = require('../../vehicles/vehicleUtils');
 const parkingSocketUtils=require('../../../../services/sockets/parkings/parkingSocketUtils');
 const notificationUtils=require('./../../notifications/notificationUtils');
 const domain = require('../../../../services/domain');
+const ratingReviewUtils=require('./ratingReviewUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -17,28 +18,59 @@ const prisma = new PrismaClient();
 router.get("/:slotId", tokenUtils.verify, async(req, res)=>{
     const userData = req.tokenData;
     try {
-        // TODO: seperate data according vehicle types.
-        // TODO: add overall rating of each type.
-        const reviews=await prisma.slotRatingReview.findMany({
+        const vehicles=await prisma.slotVehicle.findMany({
             where:{
                 slotId:parseInt(req.params.slotId)
             },
-            include:{
-                parking:true,
-                user:{
-                    select:userUtils.selection
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
+            distinct:['type'],
+            select:vehicleUtils.selectionWithTypeData
         });
 
-        res.json(reviews);
+        let reviewsProms=[];
+        for(let i=0; i<vehicles.length; i++){
+            const prom=new Promise(async(resolve)=>{
+                const vehicleRatingReiview={
+                    type:vehicles[i].type,
+                }
+
+                vehicleRatingReiview["rating"]=await ratingReviewUtils.vehicleRating(vehicles[i].id);
+                vehicleRatingReiview["reviews"]=await ratingReviewUtils.vehicleReviews({
+                    vehicleType:vehicles[i].type,
+                    slotId:req.params.slotId
+                })
+
+                resolve(vehicleRatingReiview);
+            });
+            reviewsProms.push(prom);
+        }
+
+        const vehilcesRatingReviews=await Promise.all(reviewsProms);
+
+        res.statusCode=ratingReviewsGetStatus.success.code;
+        res.json({
+            messsage:ratingReviewsGetStatus.success.messsage,
+            data:vehilcesRatingReviews
+        });
     } catch (error) {
-        res.json(error);
+        console.log(error);
+        res.statusCode=ratingReviewsGetStatus.serverError.code;
+        res.json({
+            messsage:ratingReviewsGetStatus.serverError.messsage,
+            error:error
+        });
     }
 });
+
+const ratingReviewsGetStatus={
+    success:{
+        code:200,
+        messsage:"Rating And Reviews Fetched Successfully..."
+    },
+    serverError:{
+        code:500,
+        messsage:"Internal Server Error..."
+    }
+}
 
 router.post('/', tokenUtils.verify, async(req, res)=>{
     const userData=req.tokenData;

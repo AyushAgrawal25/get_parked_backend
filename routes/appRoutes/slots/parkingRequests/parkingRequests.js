@@ -257,7 +257,11 @@ router.get('/forUser', tokenUtils.verify, async(req, res)=>{
                 },
                 booking:{
                     include:{
-                        parking:true,
+                        parking:{
+                            include:{
+                                slotRatingReview:true,
+                            }
+                        },
                         fromUserToSlotTransaction:{
                             include:{
                                 fromUserToSlot_booking:true
