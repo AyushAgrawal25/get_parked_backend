@@ -76,12 +76,12 @@ async function onChangeCameraPosition(socket, data){
             socket.join("slot_"+slot.id);
             socket.emit("slots-update", [slot]);
             // console.log("slot_"+slot.id);
+            resolve();
         });
 
         slotsUpdateFns.push(slotUpdate);
     });
 
-    // await Promise.all(slotsUpdateFns);
     // console.log("Updated....");
 
     // slots.forEach((slot)=>{

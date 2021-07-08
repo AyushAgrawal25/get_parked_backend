@@ -10,6 +10,7 @@ const vehicleUtils = require('../../vehicles/vehicleUtils');
 const parkingSocketUtils=require('../../../../services/sockets/parkings/parkingSocketUtils');
 const notificationUtils=require('./../../notifications/notificationUtils');
 const domain = require('../../../../services/domain');
+const parkingRequestUtils = require('./parkingRequestUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -241,35 +242,7 @@ router.get('/forUser', tokenUtils.verify, async(req, res)=>{
             where:{
                 userId:parseInt(userdata.id)
             },
-            include:{
-                slot:{
-                    // select:{
-                    //     id:true
-                    // }
-                    
-                    select:slotUtils.selection
-                },
-                user:{
-                    select:userUtils.selection
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                },
-                booking:{
-                    include:{
-                        parking:{
-                            include:{
-                                slotRatingReview:true,
-                            }
-                        },
-                        fromUserToSlotTransaction:{
-                            include:{
-                                fromUserToSlot_booking:true
-                            }
-                        }
-                    }
-                }
-            }
+            include:parkingRequestUtils.userInclude,
         });
 
         if(parkingReqs){
@@ -315,24 +288,7 @@ router.get('/forSlot', tokenUtils.verify, async(req, res)=>{
             where:{
                 slotId:slot.id
             },
-            include:{
-                user:{
-                    select:userUtils.selection
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                },
-                booking:{
-                    include:{
-                        parking:true,
-                        fromSlotToUserTransaction:{
-                            include:{
-                                fromSlotToUser_booking:true
-                            }
-                        }
-                    }
-                }
-            }
+            include:parkingRequestUtils.slotInclude
         });
 
         if(parkingReqs){
