@@ -14,6 +14,8 @@ const domain = require('../../../services/domain');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const Razorpay= require('razorpay');
+
 router.get("/", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
@@ -76,15 +78,47 @@ const txnsGetStatus={
 router.get("/realTransactionCode", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
+        // Now transaction code requires amount.
+        const encryptedCode=await transactionUtils.getTransactionCode({
+            userId:userData.id, amount:req.body.amount
+        });
         res.statusCode = realTxnCodeGetStatus.success.code;
         res.json({
             message: realTxnCodeGetStatus.success.message,
-            code: transactionUtils.getTransactionCode({
-                userId: userData.id
-            })
+            code: encryptedCode
         });
     } catch (error) {
         console.log(error);
+        res.json(error);
+    }
+});
+
+router.get("/razor", async(req, res)=>{
+    try {
+        let instance = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+        });
+        //TODO: Use your created transaction id for receipt.
+        var options = {
+            amount: 500,  // amount in the smallest currency unit
+            currency: "INR",
+            receipt: "order_rcptid_12"
+        };
+
+        // Code for creating order
+        // const orders=await instance.orders.create(options);
+        
+        // Checking payment signature
+        const orders=await instance.orders.fetch("order_HWYXFxsPSILzv5");
+        
+        // const hmacKey=transactionUtils.createPaymentSignature({
+        //     order_id:orders.order_id,
+        //     razorpay_payment_id:orders.id
+        // });
+        res.json(orders);
+    } catch (error) {
+        console.log(error)
         res.json(error);
     }
 });
