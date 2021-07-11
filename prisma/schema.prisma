@@ -385,11 +385,11 @@ model TransactionReal {
   amount       Float             @db.Double
   transferType MoneyTransferType
 
-  // UPI reference Code
-  ref String
+  // Payment reference Code
+  paymentRef String?
 
   // Backened generated reference code.
-  refCode String
+  txnCode String
 
   time   DateTime @default(now()) @db.Timestamp(0)
   status Int
@@ -413,7 +413,7 @@ model TransactionNonReal {
   withAccountType UserAccountType
 
   amount       Float             @db.Double
-  refCode      String
+  txnCode      String
   transferType MoneyTransferType
   time         DateTime          @default(now()) @db.Timestamp(0)
   status       Int

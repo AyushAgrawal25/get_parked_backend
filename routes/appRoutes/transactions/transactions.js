@@ -75,7 +75,7 @@ const txnsGetStatus={
     }
 }
 
-router.get("/realTransactionCode", tokenUtils.verify, async (req, res) => {
+router.post("/realTransactionCode", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
         // Now transaction code requires amount.
@@ -159,19 +159,23 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
             return;
         }
 
-        if (!decryptedTxnData.ref) {
-            res.statusCode = realTxnPostStatus.invalidTxn.code;
-            res.json({
-                message: realTxnPostStatus.invalidTxn.message
-            });
-            return;
+        let txnStatus=1;
+        if(decryptedTxnData.status==2){
+            txnStatus=2;
+        }
+        else if(transactionUtils.verifyRealTransaction({
+            orderId:decryptedTxnData.orderId,
+            paymentId:decryptedTxnData.paymentId,
+            signature:decryptedTxnData.signature
+        })==false){
+            txnStatus=2;
         }
 
         const txn = await prisma.transaction.create({
             data: {
                 accountType: req.body.accountType,
                 amount: parseFloat(req.body.amount),
-                status: decryptedTxnData.status,
+                status: txnStatus,
                 transferType: req.body.moneyTransferType,
                 type: TransactionType.Real,
                 userId: parseInt(decryptedTxnData.userId)
@@ -190,10 +194,10 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
                 accountType: req.body.accountType,
                 transferType: req.body.moneyTransferType,
                 amount: parseFloat(req.body.amount),
-                ref: decryptedTxnData.ref,
+                paymentRef: decryptedTxnData.paymentId,
                 userId: parseInt(decryptedTxnData.userId),
-                refCode: decryptedTxnData.code,
-                status: decryptedTxnData.status,
+                txnCode: decryptedTxnData.code,
+                status: txnStatus,
                 transactionId: txn.id
             },
             include: {
@@ -464,7 +468,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 fromUserId:txnReqData.requesterUserId,
                 fromAccountType: txnReqData.requesterAccountType,
                 amount: txnReqData.amount,
-                refCode:txnRefCode,
+                txnCode:txnRefCode,
                 transferType: fromTxnData.transferType,
                 withAccountType:txnReqData.requestedFromAccountType,
                 withUserId:txnReqData.requestedFromUserId,
@@ -479,7 +483,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 fromUserId:txnReqData.requestedFromUserId,
                 fromAccountType: txnReqData.requestedFromAccountType,
                 amount: txnReqData.amount,
-                refCode:txnRefCode,
+                txnCode:txnRefCode,
                 transferType: withTxnData.transferType,
                 withAccountType:txnReqData.requesterAccountType,
                 withUserId:txnReqData.requesterUserId,

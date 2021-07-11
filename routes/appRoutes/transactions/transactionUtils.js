@@ -47,15 +47,19 @@ function getTransactionData(txCode){
 async function getTransactionCode({
     userId, amount
 }){
+    let txnCodeorRecieptId=generateTransactionRefId();
     const orderData=await createOrderInRazorpay({
         amount:amount,
-        receiptId:generateTransactionRefId()
+        receiptId:txnCodeorRecieptId
     });
+    // console.log(orderData);
     let txnData={
         userId:userId,
         orderId:orderData.id,
-        ref:null,
+        amount:amount,
+        signature:null,
         paymentId:null,
+        code:txnCodeorRecieptId,
         status:0
     }
     // console.log(txnData);
@@ -63,6 +67,31 @@ async function getTransactionCode({
     const txnAsString=JSON.stringify(txnData);
     let txnCode=encryptData(txnAsString);
     return encryptData(txnCode);
+}
+
+async function verifyRealTransaction({
+    orderId, paymentId, signature
+}){
+    if((!orderId)||(orderId==null)){
+        return false;
+    }
+    if((!paymentId)||(paymentId==null)){
+        return false;
+    }
+    if((!signature)||(signature==null)){
+        return false;
+    }
+
+    const generatedSignature=createPaymentSignature({
+        order_id:orderId,
+        razorpay_payment_id:paymentId
+    });
+
+    if(generatedSignature===signature){
+        return true;
+    }
+
+    return false;
 }
 
 function generateTransactionRefId(data){
@@ -161,5 +190,6 @@ module.exports={
     generateTransactionRefId,
     walletBalance,
     vaultBalance,
-    createPaymentSignature
+    createPaymentSignature,
+    verifyRealTransaction
 }
