@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 router.post('/', tokenUtils.verify, async(req, res)=>{
     const userData=req.tokenData;
     try {
-        const userSelection=userUtils.selection;
+        let userSelection=userUtils.selection;
         userSelection["userNotification"]=false;
         const users=await prisma.user.findMany({
             where:{

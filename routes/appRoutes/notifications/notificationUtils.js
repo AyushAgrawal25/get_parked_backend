@@ -72,10 +72,7 @@ async function sendNotification({
                     recieverAccountType:recieverAccountType,
                     type:type,
                     status:status,
-                    parkingRequest:{
-
-                    }
-                },
+                }, 
             });
         } catch (error) {
             console.log(error);

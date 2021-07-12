@@ -157,6 +157,7 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
                     }
                 }
             });
+
         } catch (error) {
             console.log("Parking Request Respond : Parking Request Update Status");
             console.log(error);

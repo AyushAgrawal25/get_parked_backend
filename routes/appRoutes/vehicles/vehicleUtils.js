@@ -168,13 +168,17 @@ module.exports = {
     init: initVehiclesTypeData,
     getType,
     getAllotedArea,
-    selectionWithTypeData:{
-        id:true,
-        fair:true,
-        slotId:true,
-        typeData:true,
-        type:true,
-        typeId:true,
-        status:true
+    get selectionWithTypeData(){
+        let vehicleSelectionWithTypeData={
+            id:true,
+            fair:true,
+            slotId:true,
+            typeData:true,
+            type:true,
+            typeId:true,
+            status:true
+        };
+
+        return vehicleSelectionWithTypeData;
     }
 }
