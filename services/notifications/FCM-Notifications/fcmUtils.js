@@ -32,6 +32,11 @@ function toProperDataForFCM(fcmData) {
 async function sendTo({
     token, title, body, imgUrl, data
 }){
+    if(!token){
+        console.log("No tokens found....");
+        return;
+    }
+    
     try {
         admin.messaging().send({
             token:token,

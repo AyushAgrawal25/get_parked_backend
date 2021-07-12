@@ -1,5 +1,5 @@
 // real Transaction post
-encrypted code will consists of UPI ref and status 
+encrypted code will consists of paymentRef and status 
 
 // Model structure
 

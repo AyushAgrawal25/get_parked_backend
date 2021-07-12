@@ -2,7 +2,7 @@ const userUtils = require("../../users/userUtils")
 const vehicleUtils = require("../../vehicles/vehicleUtils")
 const slotUtils = require("../slotUtils")
 
-const userParkingRequestInclude={
+let userParkingRequestInclude={
     booking:{
         include:{
             fromUserToSlotTransaction:{
@@ -25,7 +25,7 @@ const userParkingRequestInclude={
     }
 }
 
-const slotParkingRequestInclude={
+let slotParkingRequestInclude={
     booking:{
         include:{
             fromSlotToUserTransaction:{
@@ -55,13 +55,13 @@ const slotParkingRequestInclude={
 
 module.exports={
     get userInclude(){
-        const uInc=userParkingRequestInclude;
+        let uInc=Object.assign({}, userParkingRequestInclude);
         uInc.slot.select.user.select.userNotification=false;
         return uInc;
     },
 
     get slotInclude(){
-        const sInc=slotParkingRequestInclude;
+        let sInc=Object.assign({}, slotParkingRequestInclude);
         sInc.user.select.userNotification=false;
         return sInc;
     }

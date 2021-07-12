@@ -24,7 +24,7 @@ async function vehicleRating(vehicleId){
 
 async function vehicleReviews({vehicleType, slotId}){
     try {
-        const userSelectionModel=userUtils.selection;
+        let userSelectionModel=userUtils.selection;
         userSelectionModel.userNotification=false;
         const reviews=await prisma.slotRatingReview.findMany({
             where:{
