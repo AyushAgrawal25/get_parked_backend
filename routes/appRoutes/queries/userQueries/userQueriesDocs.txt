@@ -1,0 +1,7 @@
+User Query Status
+0 -> pending
+1 -> answered
+
+For Admin or team Routes
+1) responseQuery : To Response query and add it to faqs part.
+2) getPendingQueries : To get all pending queries.

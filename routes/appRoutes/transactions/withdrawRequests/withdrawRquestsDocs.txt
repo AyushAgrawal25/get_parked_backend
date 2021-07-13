@@ -1,0 +1,8 @@
+Withdraw Request status
+0 -> pending
+1 -> Accepted and setteled
+2 -> Rejected
+
+For Admin Create Three Routes 
+1) getPendingRequests : To get all Pending Withdraw Requests
+2) forVaultResponse :  Response Pending Withdraw Request

@@ -14,8 +14,10 @@ const domain = require('../../../services/domain');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const Razorpay= require('razorpay');
 const adminUtils = require('../../../services/admin/adminUtils');
+
+const wthdrawRequests=require('./withdrawRequests/withdrawRequests');
+router.use('/wthdrawRequests', wthdrawRequests);
 
 router.get("/", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;

@@ -41,7 +41,8 @@ model User {
   queries     UserQuery[]  @relation("User_Queries")
   faqsUpVotes FAQUpVotes[] @relation("Users Upvotes")
 
-  beneficiary UserBeneficiary?
+  beneficiary      UserBeneficiary?
+  withdrawRequests WithdrawRequests[]
 
   @@map("users")
 }
@@ -86,16 +87,16 @@ model UserNotification {
 }
 
 model UserBeneficiary {
-  id     Int   @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   user   User? @relation(fields: [userId], references: [id])
   userId Int
 
   beneficiaryName String
-  accountNumber String 
-  ifscCode String
-  bankName String
-  upiId String?
+  accountNumber   String
+  ifscCode        String
+  bankName        String
+  upiId           String?
 
   status Int
 
@@ -388,6 +389,7 @@ model Transaction {
   fromSlotToApp_booking  SlotBooking? @relation(name: "FromSlotToApp_Transaction")
   fromAppToSlot_booking  SlotBooking? @relation(name: "FromAppToSlot_Transaction")
 
+  withdrawRequest WithdrawRequests? @relation("WithdrawRequest_Transactions")
   @@map("transactions")
 }
 
@@ -477,6 +479,32 @@ model TransactionRequests {
   status Int
 
   @@map("transaction_requests")
+}
+
+model WithdrawRequests {
+  id Int @id @default(autoincrement())
+
+  user        User            @relation(fields: [userId], references: [id])
+  userId      Int
+  accountType UserAccountType
+
+  type WithdrawRequestType
+
+  createdAt   DateTime  @default(now()) @db.Timestamp(0)
+  respondedAt DateTime?
+
+
+  transaction   Transaction? @relation(name: "WithdrawRequest_Transactions", fields: [transactionId], references: [id])
+  transactionId Int?
+
+  status Int
+
+  @@map("withdraw_requests")
+}
+
+enum WithdrawRequestType {
+  Wallet
+  Vault
 }
 
 model Notifications {
