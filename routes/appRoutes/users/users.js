@@ -10,7 +10,10 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 const contactsRoute=require('./contacts/contacts');
+const beneficiariesRoute=require('./beneficiaries/beneficiaries');
+
 router.use('/contacts', contactsRoute);
+router.use('/beneficiaries', beneficiariesRoute);
 
 router.post("/create", apiUtils.apiValidation, async (req, res) => {
     try {

@@ -41,6 +41,8 @@ model User {
   queries     UserQuery[]  @relation("User_Queries")
   faqsUpVotes FAQUpVotes[] @relation("Users Upvotes")
 
+  beneficiary UserBeneficiary?
+
   @@map("users")
 }
 
@@ -81,6 +83,23 @@ model UserNotification {
   status Int
 
   @@map("user_notifications")
+}
+
+model UserBeneficiary {
+  id     Int   @id @default(autoincrement())
+  
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  beneficiaryName String
+  accountNumber String 
+  ifscCode String
+  bankName String
+  upiId String?
+
+  status Int
+
+  @@map("user_beneficiaries")
 }
 
 model Slot {
