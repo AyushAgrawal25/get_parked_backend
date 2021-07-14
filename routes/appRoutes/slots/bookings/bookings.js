@@ -23,6 +23,8 @@ const prisma = new PrismaClient();
 router.post("/book", tokenUtils.verify, async(req, res)=>{
     const userData=req.tokenData;
     try {
+        //TODO: Check the slot status before sending request.
+
         const parkingRequestData=await prisma.slotParkingRequest.findUnique({
             where:{
                 id:parseInt(req.body.parkingRequestId)
@@ -290,6 +292,10 @@ const bookingStatus={
     balanceLow:{
         code:402,
         message:"Your Balance is low..."
+    },
+    inactiveSlot:{
+        code:421,
+        message:"Slot is inactive..."
     },
     requestNotFound:{
         code:422,

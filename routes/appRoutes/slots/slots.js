@@ -224,4 +224,184 @@ const slotDetailsUpdateStatus = {
     }
 };
 
+router.post("/activate", tokenUtils.verify, async(req, res)=>{
+    const userData = req.tokenData;
+    try {
+        const slotData=await prisma.slot.findFirst({
+            where:{
+                userId:parseInt(userData.id)
+            },
+        });
+
+        if(!slotData){
+            res.statusCode=slotActivateStatus.notFound.code;
+            res.json({
+                message:slotActivateStatus.notFound.message
+            });
+            return;
+        }
+
+        if(slotData.status==1){
+            res.statusCode=slotActivateStatus.alreadyActive.code;
+            res.json({
+                message:slotActivateStatus.alreadyActive.message,
+                data:slotData
+            });
+            return;
+        }
+
+        const slotStatusUpdate=await prisma.slot.update({
+            where:{
+                id:slotData.id
+            },
+            data:{
+                status:1
+            }
+        });
+
+        if(!slotStatusUpdate){
+            res.statusCode=slotActivateStatus.serverError.code;
+            res.json({
+                message:slotActivateStatus.serverError.message
+            });
+            return;
+        }
+        res.statusCode=slotActivateStatus.success.code;
+        res.json({
+            message:slotActivateStatus.success.message,
+            data:slotStatusUpdate
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=slotActivateStatus.serverError.code;
+        res.json({
+            message:slotActivateStatus.serverError.message
+        });
+        return;
+    }
+});
+
+const slotActivateStatus={
+    success:{
+        code:200,
+        message:"Slot Activated Successfully..."
+    },
+    notFound:{
+        code:404,
+        message:"Slot not found..."
+    },
+    alreadyActive:{
+        code:421,
+        message:"Slot is Already Active..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
+
+router.post("/deactivate", tokenUtils.verify, async(req, res)=>{
+    const userData = req.tokenData;
+    try {
+        const slotData=await prisma.slot.findFirst({
+            where:{
+                userId:parseInt(userData.id)
+            },
+            include:{
+                bookings:{
+                    where:{
+                        OR:[
+                            {
+                                status:1
+                            },
+                            {
+                                status:3
+                            }
+                        ]
+                    }
+                }
+            }
+        });
+
+        if(!slotData){
+            res.statusCode=slotDeactivateStatus.notFound.code;
+            res.json({
+                message:slotDeactivateStatus.notFound.message
+            });
+            return;
+        }
+        
+
+        if(slotData.status==0){
+            res.statusCode=slotDeactivateStatus.alreadyDeactive.code;
+            res.json({
+                message:slotDeactivateStatus.alreadyDeactive.message,
+                data:slotData
+            });
+            return;
+        }
+
+        if(slotData.bookings.length>0){
+            res.statusCode=slotDeactivateStatus.cannotBeDeactivate.code;
+            res.json({
+                message:slotDeactivateStatus.cannotBeDeactivate.message,
+                data:slotData
+            });
+            return;
+        }
+
+        const slotStatusUpdate=await prisma.slot.update({
+            where:{
+                id:slotData.id
+            },
+            data:{
+                status:0
+            }
+        });
+
+        if(!slotStatusUpdate){
+            res.statusCode=slotDeactivateStatus.serverError.code;
+            res.json({
+                message:slotDeactivateStatus.serverError.message
+            });
+            return;
+        }
+        res.statusCode=slotDeactivateStatus.success.code;
+        res.json({
+            message:slotDeactivateStatus.success.message,
+            data:slotStatusUpdate
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=slotDeactivateStatus.serverError.code;
+        res.json({
+            message:slotDeactivateStatus.serverError.message
+        });
+        return;
+    }
+});
+
+const slotDeactivateStatus={
+    success:{
+        code:200,
+        message:"Slot Deactivated Successfully..."
+    },
+    notFound:{
+        code:404,
+        message:"Slot not found..."
+    },
+    alreadyDeactive:{
+        code:421,
+        message:"Slot is Already Deactive..."
+    },
+    cannotBeDeactivate:{
+        code:422,
+        message:"Slot Cannot be deactivated as some bookings or parkings are still there..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
+
 module.exports = router;

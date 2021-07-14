@@ -55,6 +55,9 @@ async function onChangeCameraPosition(socket, data){
                     longitude:{
                         lte:maxLongitude
                     }
+                },
+                {
+                    status:1
                 }
             ]
         },
@@ -105,6 +108,11 @@ async function updateSlotOnMap(slotId){
         });
 
         if(!slotData){
+            return;
+        }
+
+        if(slotData.status==0){
+            // Checking slot activation status.
             return;
         }
 

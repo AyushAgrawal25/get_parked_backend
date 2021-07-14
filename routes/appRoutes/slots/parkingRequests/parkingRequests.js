@@ -18,6 +18,8 @@ const prisma = new PrismaClient();
 router.post('/send', tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
+        //TODO: Check the slot status before sending request.
+
         // Status 0 means the request is pending.
         const parkingReq = await prisma.slotParkingRequest.create({
             data: {
@@ -93,7 +95,11 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
 const parkingRequestStatus = {
     success: {
         code: 200,
-        message: "Parking sent to Lord Successfully..."
+        message: "Parking Request sent to Lord Successfully..."
+    },
+    inactiveSlot:{
+        code:422,
+        message:"Slot is inactive..."
     },
     serverError: {
         code: 500,
@@ -104,6 +110,8 @@ const parkingRequestStatus = {
 router.post("/respond", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
+        //TODO: Check the slot status before sending request.
+
         let reqResp = (req.body.response == 1) ? 1 : 2;
         const parkingReq=await prisma.slotParkingRequest.findUnique({
             where:{
@@ -225,6 +233,10 @@ const parkingRequestResponseStatus = {
     cannotBeAccepted:{
         code:400,
         message:"Parking Request cannot be accepted..."
+    },
+    inactiveSlot:{
+        code:422,
+        message:"Slot is inactive..."
     },
     expired: {
         code: 498,
