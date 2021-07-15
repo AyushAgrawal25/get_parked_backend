@@ -20,7 +20,8 @@ router.get("/:slotId", tokenUtils.verify, async(req, res)=>{
     try {
         const vehicles=await prisma.slotVehicle.findMany({
             where:{
-                slotId:parseInt(req.params.slotId)
+                slotId:parseInt(req.params.slotId),
+                status:1
             },
             distinct:['type'],
             select:vehicleUtils.selectionWithTypeData

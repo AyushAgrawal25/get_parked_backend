@@ -14,12 +14,14 @@ const prisma = new PrismaClient();
 const parkingRequestsRoute=require('./parkingRequests/parkingRequests');
 const bookingsRoute=require('./bookings/bookings');
 const parkingsRoute=require('./parkings/parkings');
-const ratingsReviews=require('./ratingsReviews/ratingsReviews');
+const ratingsReviewsRoute=require('./ratingsReviews/ratingsReviews');
+const slotVehiclesRoute=require('./slotVehicles/slotVehicles');
 
 router.use("/parkingRequests", parkingRequestsRoute);
 router.use("/bookings", bookingsRoute);
 router.use("/parkings", parkingsRoute);
-router.use("/ratingsReviews", ratingsReviews);
+router.use("/ratingsReviews", ratingsReviewsRoute);
+router.use("/slotVehicles", slotVehiclesRoute);
 
 router.post("/create", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
@@ -45,6 +47,7 @@ router.post("/create", tokenUtils.verify, async (req, res) => {
         const slot = await prisma.slot.create({
             data: reqSlotData
         });
+
         if (slot) {
             let vehiclesData = [];
             for (var i = 0; i < req.body.vehicles.length; i++) {
@@ -102,10 +105,13 @@ router.get("/parkingLord", tokenUtils.verify, async (req, res) => {
     try {
         let slot = await prisma.slot.findFirst({
             where: {
-                userId: userData.id
+                userId: userData.id,
             },
             include: {
                 vehicles: {
+                    where:{
+                        status:1
+                    },
                     select:vehicleUtils.selectionWithTypeData
                 },
                 slotImages: true

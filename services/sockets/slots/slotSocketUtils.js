@@ -30,6 +30,9 @@ async function onChangeCameraPosition(socket, data){
 
     let slotSelect=slotUtils.selection;
     slotSelect["vehicles"]={
+        where:{
+            status:1
+        },
         select:vehicleUtils.selectionWithTypeData
     };
 
@@ -98,6 +101,9 @@ async function updateSlotOnMap(slotId){
     try {
         let slotSelect=slotUtils.selection;
         slotSelect["vehicles"]={
+            where:{
+                status:1
+            },
             select:vehicleUtils.selectionWithTypeData
         };
         const slotData=await prisma.slot.findUnique({

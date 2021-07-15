@@ -31,7 +31,7 @@ async function vehicleReviews({vehicleType, slotId}){
                 AND:[
                     {
                         vehicle:{
-                            type:vehicleType
+                            type:vehicleType,
                         },
                     },
                     {
