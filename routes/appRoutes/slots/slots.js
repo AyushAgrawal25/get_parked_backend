@@ -602,4 +602,103 @@ router.post("/changeDimensions", tokenUtils.verify, async(req, res)=>{
     }
 });
 
+router.post("/changeLocation", tokenUtils.verify, async(req, res)=>{
+    const userData = req.tokenData;
+    try {
+        const slotData=await prisma.slot.findFirst({
+            where:{
+                userId:parseInt(userData.id)
+            },
+            include:{
+                bookings:{
+                    where:{
+                        OR:[
+                            {
+                                status:1
+                            },
+                            {
+                                status:3
+                            }
+                        ]
+                    }
+                }
+            }
+        });
+
+        if(!slotData){
+            res.statusCode=slotChangeLocationStatus.notFound.code;
+            res.json({
+                message:slotChangeLocationStatus.notFound.message
+            });
+            return;
+        }
+
+        if(slotData.bookings.length>0){
+            res.statusCode=slotChangeLocationStatus.cannotBeChanged.code;
+            res.json({
+                message:slotChangeLocationStatus.cannotBeChanged.message,
+                data:slotData
+            });
+            return;
+        }
+
+        const stotLocationUpdate=await prisma.slot.update({
+            where:{
+                id:slotData.id
+            },
+            data:{
+                address:req.body.address,
+                state:req.body.state,
+                city:req.body.city,
+                pincode:req.body.pincode,
+                landmark:req.body.landmark,
+                locationName:req.body.locationName,
+                country:req.body.country,
+                isoCountryCode:req.body.isoCountryCode,
+                latitude:parseFloat(req.body.latitude),
+                longitude:parseFloat(req.body.longitude),
+            }
+        });
+
+        if(!stotLocationUpdate){
+            res.statusCode=slotChangeLocationStatus.serverError.code;
+            res.json({
+                message:slotChangeLocationStatus.serverError.message
+            });
+            return;
+        }
+        res.statusCode=slotChangeLocationStatus.success.code;
+        res.json({
+            message:slotChangeLocationStatus.success.message,
+            data:stotLocationUpdate
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=slotChangeLocationStatus.serverError.code;
+        res.json({
+            message:slotChangeLocationStatus.serverError.message
+        });
+        return;
+    }
+});
+
+const slotChangeLocationStatus={
+    success:{
+        code:200,
+        message:"Slot Location Changed Successfully..."
+    },
+    notFound:{
+        code:404,
+        message:"Slot not found..."
+    },
+    cannotBeChanged:{
+        code:422,
+        message:"Slot Location Cannot be changed as some bookings or parkings are still there..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
+
 module.exports = router;
