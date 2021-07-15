@@ -348,9 +348,9 @@ router.post("/deactivate", tokenUtils.verify, async(req, res)=>{
         }
 
         if(slotData.bookings.length>0){
-            res.statusCode=slotDeactivateStatus.cannotBeDeactivate.code;
+            res.statusCode=slotDeactivateStatus.cannotBeDeactivated.code;
             res.json({
-                message:slotDeactivateStatus.cannotBeDeactivate.message,
+                message:slotDeactivateStatus.cannotBeDeactivated.message,
                 data:slotData
             });
             return;
@@ -400,7 +400,7 @@ const slotDeactivateStatus={
         code:421,
         message:"Slot is Already Deactive..."
     },
-    cannotBeDeactivate:{
+    cannotBeDeactivated:{
         code:422,
         message:"Slot Cannot be deactivated as some bookings or parkings are still there..."
     },
