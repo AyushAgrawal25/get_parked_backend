@@ -400,6 +400,7 @@ router.get("/getUser", tokenUtils.verify, async (req, res) => {
                 signUpStatus: true,
                 status: true,
                 userDetails:true,
+                beneficiary:true
             }
         });
 
