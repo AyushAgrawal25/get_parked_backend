@@ -218,4 +218,115 @@ const slotVehicleUpdateStatus={
     }
 }
 
+router.put("/uncheck", tokenUtils.verify, async(req, res)=>{
+    const userData = req.tokenData;
+    try {
+        const slotData=await prisma.slot.findFirst({
+            where:{
+                userId:parseInt(userData.id),
+            },
+            include:{
+                vehicles:{
+                    where:{
+                        type:req.body.type,
+                        status:1
+                    }
+                },
+                bookings:{
+                    where:{
+                        OR:[
+                            {
+                                status:1
+                            },
+                            {
+                                status:3
+                            }
+                        ]
+                    }
+                }
+            }
+        });
+
+        if(!slotData){
+            res.statusCode=slotVehicleUncheckStatus.slotNotFound.code;
+            res.json({
+                message:slotVehicleUncheckStatus.slotNotFound.message
+            });
+            return;
+        }
+
+        if(slotData.bookings.length>0){
+            res.statusCode=slotVehicleUncheckStatus.cannotBeUpdated.code;
+            res.json({
+                message:slotVehicleUncheckStatus.cannotBeUpdated.message
+            });
+            return;
+        }
+
+        if(slotData.vehicles.length==0){
+            res.statusCode=slotVehicleUncheckStatus.vehicleNotFound.code;
+            res.json({
+                message:slotVehicleUncheckStatus.vehicleNotFound.message
+            });
+            return;
+        }
+
+        let updateVehicleIds=[];
+        slotData.vehicles.forEach((vehicle)=>{
+            updateVehicleIds.push({
+                id:vehicle.id
+            });
+        });
+
+        const vehicleUpdate=await prisma.slotVehicle.updateMany({
+            where:{
+                OR:updateVehicleIds
+            },
+            data:{
+                status:0
+            }
+        });
+
+        if(!vehicleUpdate){
+            res.statusCode=slotVehicleUncheckStatus.serverError.code;
+            res.json({
+                message:slotVehicleUncheckStatus.serverError.message
+            });
+            return;
+        }
+
+        res.statusCode=slotVehicleUncheckStatus.success.code;
+        res.json({
+            message:slotVehicleUncheckStatus.success.message,
+            data:vehicleUpdate
+        });            
+    } catch (error) {
+        console.log(error);    
+        res.statusCode=slotVehicleUncheckStatus.serverError.code;
+        res.json({
+            message:slotVehicleUncheckStatus.serverError.message
+        });
+        return;
+    }
+});
+
+const slotVehicleUncheckStatus={
+    success:{
+        code:200,
+        message:"Vehicle successfully unchecked..."
+    },
+    slotNotFound:{
+        code:404,
+        message:"Slot not Found..."
+    },
+    vehicleNotFound:{
+        code:422,
+        message:"Vehicle Data is not present...."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
+
 module.exports=router;
