@@ -58,10 +58,19 @@ router.post("/add", tokenUtils.verify, async(req, res)=>{
             return;
         }
 
+        const vehiclesUpdateData=await prisma.slotVehicle.findMany({
+            where:{
+                slotId:slotData.id,
+                status:1
+            },
+            select:vehicleUtils.selectionWithTypeData
+        });
+
         res.statusCode=slotVehicleCreateStatus.success.code;
         res.json({
             message:slotVehicleCreateStatus.success.message,
-            data:vehicleCreate
+            data:vehicleCreate,
+            vehicles:vehiclesUpdateData
         });
     } catch (error) {
         console.log(error);
@@ -180,10 +189,19 @@ router.post("/update", tokenUtils.verify, async(req, res)=>{
             }
         });
 
+        const vehiclesUpdateData=await prisma.slotVehicle.findMany({
+            where:{
+                slotId:slotData.id,
+                status:1
+            },
+            select:vehicleUtils.selectionWithTypeData
+        });
+
         res.statusCode=slotVehicleUpdateStatus.success.code;
         res.json({
             message:slotVehicleUpdateStatus.success.message,
-            data:vehicleCreate
+            data:vehicleCreate,
+            vehicles:vehiclesUpdateData
         });            
     } catch (error) {
         console.log(error);    
@@ -294,11 +312,20 @@ router.put("/uncheck", tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
+        
+        const vehiclesUpdateData=await prisma.slotVehicle.findMany({
+            where:{
+                slotId:slotData.id,
+                status:1
+            },
+            select:vehicleUtils.selectionWithTypeData
+        });
 
         res.statusCode=slotVehicleUncheckStatus.success.code;
         res.json({
             message:slotVehicleUncheckStatus.success.message,
-            data:vehicleUpdate
+            data:vehicleUpdate,
+            vehicles:vehiclesUpdateData
         });            
     } catch (error) {
         console.log(error);    
