@@ -102,7 +102,7 @@ const slotVehicleCreateStatus={
     }
 }
 
-router.post("/update", tokenUtils.verify, async(req, res)=>{
+router.put("/update", tokenUtils.verify, async(req, res)=>{
     const userData = req.tokenData;
     try {
         const slotData=await prisma.slot.findFirst({
