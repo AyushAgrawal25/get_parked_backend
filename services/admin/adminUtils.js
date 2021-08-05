@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, UserGender } = require('@prisma/client');
 const userUtils = require('../../routes/appRoutes/users/userUtils');
 
 const prisma = new PrismaClient();
@@ -7,7 +7,19 @@ const adminDetails={
     "id":1,
     "email":"admin@getparked.com",
     "signUpStatus":0,
-    "status":1
+    "status":1,
+    "userDetails":{
+        "create":{
+            "id":1,
+            "email":"admin@getparked.com",
+            "dialCode":"+91",
+            "phoneNumber":"8085873059",
+            "firstName":"App",
+            "lastName":"Admin",
+            "gender":UserGender.Male,
+            "status":1
+        }
+    }
 }
 
 async function initAdmin(){
@@ -24,6 +36,7 @@ async function initAdmin(){
             const adminCreate=await prisma.user.create({
                 data:adminData
             });
+            console.log(adminCreate);
         }
     } catch (excp) {
         console.log(excp);
