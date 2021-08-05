@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
+const userUtils = require('../../routes/appRoutes/users/userUtils');
 
 const prisma = new PrismaClient();
 const adminDetails={
@@ -18,8 +19,8 @@ async function initAdmin(){
         });
 
         if(!userData){
-            const adminData=adminDetails;
-            adminData["userToken"]=process.env.ADMIN_USER_TOKEN;
+            const adminData=Object.assign({}, adminDetails);
+            adminData["userToken"]=userUtils.encryptUserToken(process.env.ADMIN_USER_TOKEN);
             const adminCreate=await prisma.user.create({
                 data:adminData
             });

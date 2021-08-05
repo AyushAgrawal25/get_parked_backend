@@ -1,4 +1,21 @@
+const crypto=require('crypto');
 const slotUtils = require("../slots/slotUtils");
+
+const algorithm = 'aes-256-cbc';
+const cryptionIV = Buffer.alloc(16, 0);
+const cryptionKey= Buffer.from((process.env.ENCRYPTION_KEY).substring(0, 32), "utf-8");
+
+function  encryptUserToken(userToken){
+    try {
+        let cipher = crypto.createCipheriv(algorithm, cryptionKey, cryptionIV);
+        let encrypted = cipher.update(userToken);
+        encrypted = Buffer.concat([encrypted, cipher.final()]);
+        return encrypted.toString('base64');
+    } catch (error) {
+        console.log(error);
+        return "";
+    }
+}
 
 module.exports = {
     get selection(){
@@ -50,4 +67,6 @@ module.exports = {
 
         return userSelectionWithSlot;
     },
+
+    encryptUserToken
 }
