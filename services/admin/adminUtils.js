@@ -9,18 +9,19 @@ const adminDetails={
     "signUpStatus":0,
     "status":1,
     "userDetails":{
-        "create":{
-            "id":1,
-            "email":"admin@getparked.com",
-            "dialCode":"+91",
-            "phoneNumber":"8085873059",
-            "firstName":"App",
-            "lastName":"Admin",
-            "gender":UserGender.Male,
-            "status":1
-        }
     }
 }
+
+const amdinUserDetails={
+    "id":1,
+    "email":"admin@getparked.com",
+    "dialCode":"+91",
+    "phoneNumber":"8085873059",
+    "firstName":"App",
+    "lastName":"Admin",
+    "gender":UserGender.Male,
+    "status":1
+};
 
 async function initAdmin(){
     try {
@@ -33,10 +34,34 @@ async function initAdmin(){
         if(!userData){
             const adminData=Object.assign({}, adminDetails);
             adminData["userToken"]=userUtils.encryptUserToken(process.env.ADMIN_USER_TOKEN);
+            adminData["userDetails"]={
+                "create":amdinUserDetails
+            }
+
             const adminCreate=await prisma.user.create({
                 data:adminData
             });
             console.log(adminCreate);
+        }
+        else{
+            const adminData=Object.assign({}, adminDetails);
+            adminData.userToken=userUtils.encryptUserToken(process.env.ADMIN_USER_TOKEN);
+            const adminUpdate=await prisma.user.update({
+                where:{
+                    id:adminData.id
+                },
+                data:{
+                    email:adminData.email,
+                    userToken:adminData.userToken,
+                    signUpStatus:adminData.signUpStatus,
+                    status:adminData.status,
+                    userDetails:{
+                        update:amdinUserDetails
+                    }
+                }
+            });
+
+            console.log(adminUpdate);
         }
     } catch (excp) {
         console.log(excp);

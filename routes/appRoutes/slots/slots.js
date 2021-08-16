@@ -467,6 +467,7 @@ router.post('/changeTime', tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
+
         res.statusCode=slotChangeTimeStatus.success.code;
         res.json({
             message:slotChangeTimeStatus.success.message,
@@ -540,17 +541,17 @@ router.post("/changeDimensions", tokenUtils.verify, async(req, res)=>{
         });
 
         if(!slotData){
-            res.statusCode=slotChangeTimeStatus.notFound.code;
+            res.statusCode=slotChangeDimensionStatus.notFound.code;
             res.json({
-                message:slotChangeTimeStatus.notFound.message
+                message:slotChangeDimensionStatus.notFound.message
             });
             return;
         }
 
         if(slotData.bookings.length>0){
-            res.statusCode=slotChangeTimeStatus.cannotBeChanged.code;
+            res.statusCode=slotChangeDimensionStatus.cannotBeChanged.code;
             res.json({
-                message:slotChangeTimeStatus.cannotBeChanged.message,
+                message:slotChangeDimensionStatus.cannotBeChanged.message,
                 data:slotData
             });
             return;
@@ -598,15 +599,58 @@ router.post("/changeDimensions", tokenUtils.verify, async(req, res)=>{
                 height:parseFloat(req.body.height),
                 breadth:parseFloat(req.body.breadth),
                 length:parseFloat(req.body.length)
+            },
+            include:{
+                vehicles:{
+                    select:vehicleUtils.selectionWithTypeData,
+                    where:{
+                        status:1
+                    }
+                }
             }
         });
 
-        res.json(slotDimensionsUpdate);
+        if(!slotDimensionsUpdate){
+            res.statusCode=slotChangeDimensionStatus.serverError.code;
+            res.json({
+                message:slotChangeDimensionStatus.serverError.message
+            });
+            return;
+        }
+
+        res.statusCode=slotChangeDimensionStatus.success.code;
+        res.json({
+            message:slotChangeDimensionStatus.success.message,
+            data:slotDimensionsUpdate
+        });
     } catch (error) {
         console.log(error);
-        res.json(error);
+        res.statusCode=slotChangeDimensionStatus.serverError.code;
+        res.json({
+            message:slotChangeDimensionStatus.serverError.message
+        });
+        return;
     }
 });
+
+const slotChangeDimensionStatus={
+    success:{
+        code:200,
+        message:"Slot Dimensions Changed Successfully..."
+    },
+    notFound:{
+        code:404,
+        message:"Slot not found..."
+    },
+    cannotBeChanged:{
+        code:422,
+        message:"Slot Dimensions Cannot be changed as some bookings or parkings are still there..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
 
 router.post("/changeLocation", tokenUtils.verify, async(req, res)=>{
     const userData = req.tokenData;
