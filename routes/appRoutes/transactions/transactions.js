@@ -537,16 +537,6 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             return;
         }
 
-        // Wallet balance of the acceptor must be greater than amount.
-        let walletBalance=await transactionUtils.walletBalance(userData.id);
-        if(walletBalance<txnReqData.amount){
-            res.statusCode=txnReqResponseStatus.lowBalance.code;
-            res.json({
-                message:txnReqResponseStatus.lowBalance.message
-            });
-            return;
-        }
-        
         if(req.body.response==2){
             // Reject response.
             const updateRequest=await prisma.transactionRequests.update({
@@ -601,6 +591,16 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             res.statusCode=txnReqResponseStatus.serverError.code;
             res.json({
                 message:txnReqResponseStatus.serverError.message
+            });
+            return;
+        }
+
+        // Wallet balance of the acceptor must be greater than amount.
+        let walletBalance=await transactionUtils.walletBalance(userData.id);
+        if(walletBalance<txnReqData.amount){
+            res.statusCode=txnReqResponseStatus.lowBalance.code;
+            res.json({
+                message:txnReqResponseStatus.lowBalance.message
             });
             return;
         }
