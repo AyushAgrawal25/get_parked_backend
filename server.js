@@ -10,6 +10,7 @@ const ioUtils = require('./services/sockets/ioUtils');
 const slotSocketUtils = require('./services/sockets/slots/slotSocketUtils');
 const userSocketUtils = require('./services/sockets/users/userSocketUtils');
 const tokenUtils = require('./services/tokenUtils/tokenUtils.js');
+const fileUtils = require('./services/fileUtils/fileUtils');
 
 const app = express();
 
@@ -45,6 +46,7 @@ server.listen(+port, () => {
     console.log(name + " " + port);
     vehicleUtils.init();
     adminUtils.init();
+    fileUtils.initUploads();
 });
 io.use((socket, next)=>{
     const token = socket.handshake.auth[tokenUtils.AUTHORIZATION_TOKEN];
