@@ -230,6 +230,64 @@ const slotDetailsUpdateStatus = {
     }
 };
 
+router.get("/slotDetails/:slotId", tokenUtils.verify, async(req, res)=>{
+    const userData = req.tokenData;
+    try{
+        let slotSelect=slotUtils.selection;
+        slotSelect["vehicles"]={
+            where:{
+                status:1
+            },
+            select:vehicleUtils.selectionWithTypeData
+        };
+
+        const slotData=await prisma.slot.findUnique({
+            where:{
+                id:parseInt(req.params.slotId)
+            },
+            select:slotSelect
+        });
+
+        if(!slotData){
+            res.statusCode=slotDetailsFetchStatus.notFound.code;
+            res.json({
+                message:slotDetailsFetchStatus.notFound.message
+            });
+            return;
+        }
+
+        res.statusCode=slotDetailsFetchStatus.success.code;
+        res.json({
+            message:slotDetailsFetchStatus.success.message,
+            data:slotData
+        });
+        return;
+    }
+    catch(error){
+        console.log(error);
+        res.statusCode=slotDetailsFetchStatus.serverError.code;
+        res.json({
+            message:slotDetailsFetchStatus.serverError.message,
+            error:error
+        });
+    }
+});
+
+const slotDetailsFetchStatus={
+    success:{
+        code:200,
+        message:"Slot Details Fetched Successfully..."
+    },
+    notFound:{
+        code:404,
+        message:"Slot not found..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+};
+
 router.post("/activate", tokenUtils.verify, async(req, res)=>{
     const userData = req.tokenData;
     try {
