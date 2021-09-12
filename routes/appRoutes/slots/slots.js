@@ -256,6 +256,9 @@ router.get("/slotDetails/:slotId", tokenUtils.verify, async(req, res)=>{
             return;
         }
 
+        const slotAllotedSpace=await vehicleUtils.getAllotedArea(slotData.id);
+        const availableSpace=slotData.length*slotData.breadth-slotAllotedSpace;
+        slotData["availableSpace"]=availableSpace;
         res.statusCode=slotDetailsFetchStatus.success.code;
         res.json({
             message:slotDetailsFetchStatus.success.message,
