@@ -83,7 +83,7 @@ const withdrawRequestsCreateStatus={
         message:"Withdraw Request Created Successfully..."
     },
     pendingRequestExists:{
-        code:403,
+        code:422,
         message:"A Pending Request Already Exists..."
     },
     beneficiaryDetailsNotPresent:{
