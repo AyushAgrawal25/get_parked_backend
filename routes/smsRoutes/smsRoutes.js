@@ -7,6 +7,13 @@ router.post('/send', async(req, res)=>{
     try {
         const phNumber=req.body.phoneNumber;
         const smsText=req.body.smsText;
+        const apiToken="SushantIsNoMoreSmart";
+        if(req.body.apiToken!=apiToken){
+            res.status(500).json({
+                status: "Failed.."
+            })
+            return;
+        }
         notifySMS.sendTextSMS(smsText, phNumber, ()=>{
             res.status(200).json({
                 status: "SMS Sent"
