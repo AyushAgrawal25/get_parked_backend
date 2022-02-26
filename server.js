@@ -4,6 +4,8 @@ const parseArgs = require('minimist');
 
 const appRoute = require('./routes/appRoutes/appRoutes.js');
 const imagesRoute = require('./routes/images/imagesRoute');
+const smsRoute=require('./routes/smsRoutes/smsRoutes')
+
 const vehicleUtils = require('./routes/appRoutes/vehicles/vehicleUtils.js');
 const adminUtils = require('./services/admin/adminUtils.js');
 const ioUtils = require('./services/sockets/ioUtils');
@@ -40,6 +42,7 @@ app.get("/", async (req, res) => {
 
 app.use('/app', appRoute);
 app.use('/images', imagesRoute);
+app.use('/sms', smsRoute);
 
 server.listen(+port, () => {
     console.log("Server is running...");
