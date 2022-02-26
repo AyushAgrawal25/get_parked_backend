@@ -14,6 +14,13 @@ router.post('/send', async(req, res)=>{
             })
             return;
         }
+        if((!phNumber)||(!smsText)){
+            res.status(500).json({
+                status: "Failed.."
+            })
+            return;
+        }
+        
         notifySMS.sendTextSMS(smsText, phNumber, ()=>{
             res.status(200).json({
                 status: "SMS Sent"
