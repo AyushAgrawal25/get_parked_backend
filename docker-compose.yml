@@ -10,4 +10,12 @@ services:
     env_file:
       - './mysql.env'
     volumes:
-      - './mysqlData:/var/lib/mysql'
+      - './dbData/mysqlData:/var/lib/mysql'
+
+  redis_db:
+    image: redis:6.2.5-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./dbData/redisData:/data

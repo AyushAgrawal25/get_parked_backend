@@ -116,4 +116,4 @@ aws-sms-config.js
 /prisma/migrations
 
 /devDB
-/mysqlData
+/dbData
