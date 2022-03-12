@@ -9,3 +9,5 @@ services:
       - '3307:3306'
     environment:
       MYSQL_ROOT_PASSWORD: $GetParked
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: $GetParked
