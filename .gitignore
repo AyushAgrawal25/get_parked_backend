@@ -114,3 +114,5 @@ aws-sms-config.js
 
 # prisma migrations
 /prisma/migrations
+
+/devDB
