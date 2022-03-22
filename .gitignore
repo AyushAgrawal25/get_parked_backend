@@ -105,9 +105,8 @@ dist
 .tern-port
 
 # My Confgs File
-mySql.js
-fcm-config.json
-aws-sms-config.js
+firebase.json
+awsSmsConfig.json
 
 #uploads
 /public/uploads

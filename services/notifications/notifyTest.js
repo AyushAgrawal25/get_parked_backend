@@ -1,6 +1,6 @@
 const admin=require('firebase-admin');
 
-const serviceAccount=require('./FCM Config/fcm-config.json');
+const serviceAccount=require('./../../firebase.json');
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

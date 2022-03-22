@@ -1,5 +1,5 @@
 var admin = require("firebase-admin");
-var serviceAccount = require("./fcm-config.json");
+var serviceAccount = require("./../../../firebase.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
