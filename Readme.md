@@ -63,5 +63,4 @@ npx prisma migrate dev
 
 ```cmd
 npx prisma generate
-
 ```
