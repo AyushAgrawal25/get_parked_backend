@@ -46,3 +46,22 @@ MYSQL_ROOT_PASSWORD=password
 MYSQL_USER=admin
 MYSQL_PASSWORD=password
 ```
+
+## Prisma Installation
+
+```cmd
+npm install prisma --save-dev
+```
+
+```cmd
+npx prisma
+```
+
+```cmd
+npx prisma migrate dev
+```
+
+```cmd
+npx prisma generate
+
+```

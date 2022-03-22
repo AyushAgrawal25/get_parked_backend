@@ -5,11 +5,7 @@ const appDetails = require('./../../appDetails');
 
 dotenv.config();
 
-AWS.config.update({
-    accessKeyId: awsConfig.awsAccessKeyId,
-    secretAccessKey: awsConfig.awsSecretAccessKey,
-    region: awsConfig.awsRegion
-});
+AWS.config.update(awsConfig);
 
 const sendOTPSMS = function (otp, phoneNumber, successFun, failFun) {
 
