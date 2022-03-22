@@ -110,8 +110,8 @@ router.post('/upload', tokenUtils.verify, upload.any(), async(req, res)=>{
                 id:uDResp.id
             },
             data:{
-                picThumbnailUrl:profilePicUtils.thumbnailPath+"/"+imgNewName,
-                picUrl:profilePicUtils.orgPath+"/"+imgNewName
+                picThumbnailUrl:profilePicUtils.thumbnailRoute+"/"+imgNewName,
+                picUrl:profilePicUtils.orgRoute+"/"+imgNewName
             }
         });
         if(uDUpdate){

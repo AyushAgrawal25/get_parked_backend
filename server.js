@@ -10,8 +10,10 @@ const ioUtils = require('./services/sockets/ioUtils');
 const slotSocketUtils = require('./services/sockets/slots/slotSocketUtils');
 const userSocketUtils = require('./services/sockets/users/userSocketUtils');
 const tokenUtils = require('./services/tokenUtils/tokenUtils.js');
+const fileUtils = require('./services/fileUtils/fileUtils');
 
 const app = express();
+
 const args = parseArgs(process.argv.slice(2));
 const { name = 'default', port = '5000' } = args;
 
@@ -22,7 +24,9 @@ const io = ioUtils.init(server);
 
 //Adding services
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+    limit:'50mb'
+}));
 
 app.get("/", async (req, res) => {
     try {
@@ -42,6 +46,7 @@ server.listen(+port, () => {
     console.log(name + " " + port);
     vehicleUtils.init();
     adminUtils.init();
+    fileUtils.initUploads();
 });
 io.use((socket, next)=>{
     const token = socket.handshake.auth[tokenUtils.AUTHORIZATION_TOKEN];

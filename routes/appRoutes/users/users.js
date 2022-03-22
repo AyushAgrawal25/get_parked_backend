@@ -9,12 +9,19 @@ const slotUtils = require('../slots/slotUtils');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const contactsRoute=require('./contacts/contacts');
+const beneficiariesRoute=require('./beneficiaries/beneficiaries');
+const userUtils = require('./userUtils');
+
+router.use('/contacts', contactsRoute);
+router.use('/beneficiaries', beneficiariesRoute);
+
 router.post("/create", apiUtils.apiValidation, async (req, res) => {
     try {
         const resp = await prisma.user.create({
             data: {
                 email: req.body.email,
-                userToken: req.body.userToken,
+                userToken: userUtils.encryptUserToken(req.body.userToken),
                 signUpStatus: 0,
                 status: 1
             },
@@ -260,7 +267,6 @@ const userDetailsUpdateStatus={
 }
 
 router.post('/login', async (req, res) => {
-    console.log(req.body);
     try {
         if ((req.body.email == undefined) || (!req.body.userToken == undefined)) {
             res.statusCode = loginStatus.invalid.code;
@@ -273,7 +279,7 @@ router.post('/login', async (req, res) => {
         const user = await prisma.user.findFirst({
             where: {
                 email: req.body.email,
-                userToken: req.body.userToken,
+                userToken: userUtils.encryptUserToken(req.body.userToken),
                 status: 1
             },
             select: {
@@ -394,6 +400,7 @@ router.get("/getUser", tokenUtils.verify, async (req, res) => {
                 signUpStatus: true,
                 status: true,
                 userDetails:true,
+                beneficiary:true
             }
         });
 

@@ -29,10 +29,21 @@ model User {
   slotRatingReviews           SlotRatingReview[]
   transactions                Transaction[]
   transactionsReal            TransactionReal[]
-  fromUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionFromUser")
-  withUserTransactionsNonReal TransactionNonReal[]  @relation(name: "NonRealTransactionWithUser")
-  fromUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestFromUser")
-  wihtUserTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestWithUser")
+  fromUserTransactionsNonReal TransactionNonReal[] @relation(name: "NonRealTransactionFromUser")
+  withUserTransactionsNonReal TransactionNonReal[] @relation(name: "NonRealTransactionWithUser")
+
+  requesterTransactionRequests     TransactionRequests[] @relation(name: "TransactionRequestFromUser")
+  requestedFromTransactionRequests TransactionRequests[] @relation(name: "TransactionRequestWithUser")
+
+  recievedNotifications Notifications[] @relation(name: "NotificationRecieve")
+  sentNotifications     Notifications[] @relation(name: "NotificationSend")
+
+  queries     UserQuery[]  @relation("User_Queries")
+  faqsUpVotes FAQUpVotes[] @relation("Users Upvotes")
+
+  beneficiary      UserBeneficiary?
+  withdrawRequests WithdrawRequests[]
+
   @@map("users")
 }
 
@@ -73,6 +84,23 @@ model UserNotification {
   status Int
 
   @@map("user_notifications")
+}
+
+model UserBeneficiary {
+  id Int @id @default(autoincrement())
+
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  beneficiaryName String
+  accountNumber   String
+  ifscCode        String
+  bankName        String
+  upiId           String?
+
+  status Int
+
+  @@map("user_beneficiaries")
 }
 
 model Slot {
@@ -169,10 +197,18 @@ model SlotParkingRequest {
   vehicle   SlotVehicle @relation(fields: [vehicleId], references: [id])
   vehicleId Int
 
-  time         DateTime      @default(now()) @updatedAt @db.Timestamp(0)
   spaceType    SlotSpaceType
   parkingHours Int
-  status       Int
+
+  // Notifications
+  requestNotification   Notifications? @relation(name: "ParkingRequestNotification", fields: [requestNotificationId], references: [id])
+  requestNotificationId Int?
+
+  responseNotification   Notifications? @relation(name: "ParkingRequestResponseNotification", fields: [responseNotificationId], references: [id])
+  responseNotificationId Int?
+
+  time   DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  status Int
 
   booking SlotBooking?
   @@map("slot_parking_requests")
@@ -200,6 +236,7 @@ model SlotBooking {
 
   duration       Int
   exceedDuration Int @default(0)
+  status         Int
 
   //Transactions
   fromUserToSlotTransaction   Transaction? @relation(name: "FromUserToSlot_Transaction", fields: [fromUserToSlotTransactionId], references: [id])
@@ -214,7 +251,18 @@ model SlotBooking {
   fromAppToSlotTransaction   Transaction? @relation(name: "FromAppToSlot_Transaction", fields: [fromAppToSlotTransactionId], references: [id])
   fromAppToSlotTransactionId Int?
 
-  status Int
+  // Notifications
+  forUser_BookingNotification   Notifications? @relation(name: "BookingNotification_ForUser", fields: [forUser_BookingNotificationId], references: [id])
+  forUser_BookingNotificationId Int?
+
+  forSlot_BookingNotification   Notifications? @relation(name: "BookingNotification_ForSlot", fields: [forSlot_BookingNotificationId], references: [id])
+  forSlot_BookingNotificationId Int?
+
+  forUser_CancellationNotification   Notifications? @relation(name: "BookingCancellationNotification_ForUser", fields: [forUser_CancellationNotificationId], references: [id])
+  forUser_CancellationNotificationId Int?
+
+  forSlot_CancellationNotification   Notifications? @relation(name: "BookingCancellationNotification_ForSlot", fields: [forSlot_CancellationNotificationId], references: [id])
+  forSlot_CancellationNotificationId Int?
 
   parking SlotParking?
   @@map("slot_bookings")
@@ -236,12 +284,27 @@ model SlotParking {
   bookingId Int
 
   withdrawOTP  String        @default("0000")
-  time         DateTime      @default(now()) @db.Timestamp(0)
   spaceType    SlotSpaceType
   parkingHours Int
-  status       Int
+
+  // Notifications
+  forUser_ParkingNotification   Notifications? @relation(name: "ParkingNotification_ForUser", fields: [forUser_ParkingNotificationId], references: [id])
+  forUser_ParkingNotificationId Int?
+
+  forSlot_ParkingNotification   Notifications? @relation(name: "ParkingNotification_ForSlot", fields: [forSlot_ParkingNotificationId], references: [id])
+  forSlot_ParkingNotificationId Int?
+
+  forUser_WithdrawNotification   Notifications? @relation(name: "ParkingWithdrawNotification_ForUser", fields: [forUser_WithdrawNotificationId], references: [id])
+  forUser_WithdrawNotificationId Int?
+
+  forSlot_WithdrawNotification   Notifications? @relation(name: "ParkingWithdrawNotification_ForSlot", fields: [forSlot_WithdrawNotificationId], references: [id])
+  forSlot_WithdrawNotificationId Int?
+
+  time   DateTime @default(now()) @db.Timestamp(0)
+  status Int
 
   slotRatingReview SlotRatingReview?
+
   @@map("slot_parkings")
 }
 
@@ -300,28 +363,33 @@ enum MoneyTransferType {
 model Transaction {
   id Int @id @default(autoincrement())
 
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  user        User            @relation(fields: [userId], references: [id])
+  userId      Int
+  accountType UserAccountType
 
-  accountType  UserAccountType
   transferType MoneyTransferType
+  amount       Float             @db.Double
   type         TransactionType
 
-  amount Float    @db.Double
+  // Notification
+  notification   Notifications? @relation(name: "TransactionNotification", fields: [notificationId], references: [id])
+  notificationId Int?
+
   time   DateTime @default(now()) @db.Timestamp(0)
   status Int
 
   transactionReal    TransactionReal?
   transactionNonReal TransactionNonReal?
 
-  fromUserTransactionRequest TransactionRequests? @relation(name: "FromUserTransaction")
-  withUserTransactionRequest TransactionRequests? @relation(name: "WithUserTransaction")
+  requesterTransactionRequest     TransactionRequests? @relation(name: "Requester_Transaction")
+  requestedFromTransactionRequest TransactionRequests? @relation(name: "Requested_From_Transaction")
 
   fromUserToSlot_booking SlotBooking? @relation(name: "FromUserToSlot_Transaction")
   fromSlotToUser_booking SlotBooking? @relation(name: "FromSlotToUser_Transaction")
   fromSlotToApp_booking  SlotBooking? @relation(name: "FromSlotToApp_Transaction")
   fromAppToSlot_booking  SlotBooking? @relation(name: "FromAppToSlot_Transaction")
 
+  withdrawRequest WithdrawRequests? @relation("WithdrawRequest_Transactions")
   @@map("transactions")
 }
 
@@ -338,11 +406,11 @@ model TransactionReal {
   amount       Float             @db.Double
   transferType MoneyTransferType
 
-  // UPI reference Code
-  ref String
+  // Payment reference Code
+  paymentRef String?
 
   // Backened generated reference code.
-  refCode String
+  txnCode String
 
   time   DateTime @default(now()) @db.Timestamp(0)
   status Int
@@ -366,10 +434,11 @@ model TransactionNonReal {
   withAccountType UserAccountType
 
   amount       Float             @db.Double
-  refCode      String
+  txnCode      String
   transferType MoneyTransferType
   time         DateTime          @default(now()) @db.Timestamp(0)
   status       Int
+
   @@map("transactions_non_real")
 }
 
@@ -381,26 +450,163 @@ enum TransactionNonRealType {
 model TransactionRequests {
   id Int @id @default(autoincrement())
 
-  fromUser        User            @relation(name: "TransactionRequestFromUser", fields: [fromUserId], references: [id])
-  fromUserId      Int
-  fromAccountType UserAccountType
+  requesterUser        User            @relation(name: "TransactionRequestFromUser", fields: [requesterUserId], references: [id])
+  requesterUserId      Int
+  requesterAccountType UserAccountType
 
-  withUser        User            @relation(name: "TransactionRequestWithUser", fields: [withUserId], references: [id])
-  withUserId      Int
-  withAccountType UserAccountType
+  requestedFromUser        User            @relation(name: "TransactionRequestWithUser", fields: [requestedFromUserId], references: [id])
+  requestedFromUserId      Int
+  requestedFromAccountType UserAccountType
 
   amount       Float             @db.Double
   note         String            @default("")
   transferType MoneyTransferType
 
-  fromUserTransaction   Transaction? @relation(name: "FromUserTransaction", fields: [fromUserTransactionId], references: [id])
-  fromUserTransactionId Int?
+  requesterTransaction   Transaction? @relation(name: "Requester_Transaction", fields: [requesterTransactionId], references: [id])
+  requesterTransactionId Int?
 
-  withUserTransaction   Transaction? @relation(name: "WithUserTransaction", fields: [wihtUserTransactionId], references: [id])
-  wihtUserTransactionId Int?
+  requestedFromTransaction   Transaction? @relation(name: "Requested_From_Transaction", fields: [requestedFromTransactionId], references: [id])
+  requestedFromTransactionId Int?
+
+  // Notification
+  requestNotification   Notifications? @relation(name: "TransactionRequestNotification", fields: [requestNotificationId], references: [id])
+  requestNotificationId Int?
+
+  responseNotification   Notifications? @relation(name: "TransactionRequestResponseNotification", fields: [responseNotificationId], references: [id])
+  responseNotificationId Int?
 
   time   DateTime @default(now()) @db.Timestamp(0)
   status Int
 
   @@map("transaction_requests")
+}
+
+model WithdrawRequests {
+  id Int @id @default(autoincrement())
+
+  user        User            @relation(fields: [userId], references: [id])
+  userId      Int
+  accountType UserAccountType
+
+  type WithdrawRequestType
+
+  createdAt   DateTime  @default(now()) @db.Timestamp(0)
+  respondedAt DateTime?
+
+
+  transaction   Transaction? @relation(name: "WithdrawRequest_Transactions", fields: [transactionId], references: [id])
+  transactionId Int?
+
+  status Int
+
+  @@map("withdraw_requests")
+}
+
+enum WithdrawRequestType {
+  Wallet
+  Vault
+}
+
+model Notifications {
+  id Int @id @default(autoincrement())
+
+  recieverUser        User?           @relation(name: "NotificationRecieve", fields: [recieverUserId], references: [id])
+  recieverUserId      Int
+  recieverAccountType UserAccountType
+
+  senderUser        User?           @relation(name: "NotificationSend", fields: [senderUserId], references: [id])
+  senderUserId      Int
+  senderAccountType UserAccountType
+
+  type NotificationType
+
+  time   DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  status Int
+
+  // Parking Requests
+  parkingRequest              SlotParkingRequest? @relation(name: "ParkingRequestNotification")
+  parkingRequest_withResponse SlotParkingRequest? @relation(name: "ParkingRequestResponseNotification")
+
+  // Bookings
+  booking_ForUser             SlotBooking? @relation("BookingNotification_ForUser")
+  booking_ForSlot             SlotBooking? @relation("BookingNotification_ForSlot")
+  bookingCancellation_ForUser SlotBooking? @relation("BookingCancellationNotification_ForUser")
+  bookingCancellation_ForSlot SlotBooking? @relation("BookingCancellationNotification_ForSlot")
+
+  // Parkings
+  parking_ForUser SlotParking? @relation("ParkingNotification_ForUser")
+  parking_ForSlot SlotParking? @relation("ParkingNotification_ForSlot")
+
+  parkingWithdraw_ForUser SlotParking? @relation("ParkingWithdrawNotification_ForUser")
+  parkingWithdraw_ForSlot SlotParking? @relation("ParkingWithdrawNotification_ForSlot")
+
+  // Transactions
+  transaction Transaction? @relation("TransactionNotification")
+
+  // Transaction Requests
+  transactionRequest              TransactionRequests? @relation("TransactionRequestNotification")
+  transactionRequest_withResponse TransactionRequests? @relation("TransactionRequestResponseNotification")
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ParkingRequest
+  ParkingRequestResponse
+
+  Booking_ForSlot
+  Booking_ForUser
+  BookingCancellation_ForSlot
+  BookingCancellation_ForUser
+
+  Parking_ForSlot
+  Parking_ForUser
+  ParkingWithdraw_ForSlot
+  ParkingWithdraw_ForUser
+
+  Transaction
+
+  TransactionRequest
+  TransactionRequestResponse
+}
+
+model UserQuery {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(name: "User_Queries", fields: [userId], references: [id])
+  userId Int
+
+  query       String
+  description String?
+  answer      String?
+  status      Int
+
+  @@map("user_queries")
+}
+
+model FAQS {
+  id           Int          @id @default(autoincrement())
+  query        String
+  description  String
+  answer       String
+  upVotesCount Int          @default(0)
+  status       Int
+  upVotes      FAQUpVotes[] @relation("FAQs Upvotes")
+
+  @@map("faqs")
+}
+
+model FAQUpVotes {
+  id Int @id @default(autoincrement())
+
+  faq   FAQS @relation(name: "FAQs Upvotes", fields: [faqId], references: [id])
+  faqId Int
+
+  user   User @relation(name: "Users Upvotes", fields: [userId], references: [id])
+  userId Int
+
+  status Int
+
+  @@unique([faqId, userId])
+  @@map("faq_upvotes")
 }

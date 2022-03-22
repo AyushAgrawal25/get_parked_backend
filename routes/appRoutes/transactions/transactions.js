@@ -1,21 +1,30 @@
 require('dotenv').config();
 const express = require('express');
-const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType } = require('@prisma/client');
+const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType, NotificationType } = require('@prisma/client');
 
 const slotUtils = require('./../slots/slotUtils');
 const userUtils = require('./../users/userUtils');
 const tokenUtils = require('./../../../services/tokenUtils/tokenUtils');
 const transactionUtils = require('./transactionUtils');
+const transactionSocketUtils=require('./../../../services/sockets/transactions/transactionSocketUtils');
+const notificationUtils = require('../notifications/notificationUtils');
+const fcmUtils=require('./../../../services/notifications/FCM-Notifications/fcmUtils');
+const domain = require('../../../services/domain');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+const adminUtils = require('../../../services/admin/adminUtils');
+
+const wthdrawRequests=require('./withdrawRequests/withdrawRequests');
+router.use('/wthdrawRequests', wthdrawRequests);
 
 router.get("/", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
         const txns=await prisma.transaction.findMany({
             where:{
-                userId:userData.id
+                userId:parseInt(userData.id)
             },
             include:{
                 transactionReal:{
@@ -69,21 +78,24 @@ const txnsGetStatus={
     }
 }
 
-router.get("/realTransactionCode", tokenUtils.verify, async (req, res) => {
+router.post("/addMoneyToWalletCode", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
+        // Now transaction code requires amount.
+        const encryptedCode=await transactionUtils.getTransactionCode({
+            userId:userData.id, amount:req.body.amount
+        });
         res.statusCode = realTxnCodeGetStatus.success.code;
         res.json({
             message: realTxnCodeGetStatus.success.message,
-            code: transactionUtils.getTransactionCode({
-                userId: userData.id
-            })
+            code: encryptedCode
         });
     } catch (error) {
         console.log(error);
         res.json(error);
     }
 });
+
 const realTxnCodeGetStatus = {
     success: {
         code: 200,
@@ -95,7 +107,7 @@ const realTxnCodeGetStatus = {
     }
 }
 
-router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
+router.post("/addMoneyToWallet", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
         if (!req.body.code) {
@@ -121,19 +133,23 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
             return;
         }
 
-        if (!decryptedTxnData.ref) {
-            res.statusCode = realTxnPostStatus.invalidTxn.code;
-            res.json({
-                message: realTxnPostStatus.invalidTxn.message
-            });
-            return;
+        let txnStatus=1;
+        if(decryptedTxnData.status==2){
+            txnStatus=2;
+        }
+        else if(transactionUtils.verifyRealTransaction({
+            orderId:decryptedTxnData.orderId,
+            paymentId:decryptedTxnData.paymentId,
+            signature:decryptedTxnData.signature
+        })==false){
+            txnStatus=2;
         }
 
         const txn = await prisma.transaction.create({
             data: {
                 accountType: req.body.accountType,
                 amount: parseFloat(req.body.amount),
-                status: decryptedTxnData.status,
+                status: txnStatus,
                 transferType: req.body.moneyTransferType,
                 type: TransactionType.Real,
                 userId: parseInt(decryptedTxnData.userId)
@@ -152,10 +168,10 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
                 accountType: req.body.accountType,
                 transferType: req.body.moneyTransferType,
                 amount: parseFloat(req.body.amount),
-                ref: decryptedTxnData.ref,
+                paymentRef: decryptedTxnData.paymentId,
                 userId: parseInt(decryptedTxnData.userId),
-                refCode: decryptedTxnData.code,
-                status: decryptedTxnData.status,
+                txnCode: decryptedTxnData.code,
+                status: txnStatus,
                 transactionId: txn.id
             },
             include: {
@@ -176,14 +192,8 @@ router.post("/realTransaction", tokenUtils.verify, async (req, res) => {
             return;
         }
         
-        // TODO: create like this...
-        // const tmpData={
-        //     walletAmout:await transactionUtils.walletBalance(userData.id),
-        //     vaultAmount:await transactionUtils.vaultBalance(userData.id)
-        // }
-        // ioUtils.get().to("user_"+userData.id).emit("transaction-update", tmpData);
-
-        // TODO: Update Transactions Sockets.
+        transactionSocketUtils.updateUser(txn.userId, txn.id);
+        
         res.statusCode = realTxnPostStatus.success.code;
         res.json({
             message: realTxnPostStatus.success.message,
@@ -214,36 +224,284 @@ const realTxnPostStatus = {
     }
 }
 
+router.post('/vaultTransferToWallet', tokenUtils.verify, async(req, res)=>{
+    let userData=req.tokenData;
+    try {
+        const amount=req.body.amount;
+        const vaultAmount=await transactionUtils.vaultBalance(userData.id);
+        if(vaultAmount<amount){
+            res.statusCode=vaultTransferToWalletStatus.success.code;
+            res.json({
+                message:vaultTransferToWalletStatus.success.message
+            });
+            return;
+        }
+
+        const slotToAppTxnCreate=prisma.transaction.create({
+            data:{
+                accountType:UserAccountType.Slot,
+                transferType: MoneyTransferType.Remove,
+                type:TransactionType.NonReal,
+                amount:amount,
+                status:1,
+                userId:parseInt(userData.id)
+            }
+        });
+
+        const appToSlotTxnCreate=prisma.transaction.create({
+            data:{
+                accountType:UserAccountType.Admin,
+                transferType: MoneyTransferType.Add,
+                type:TransactionType.NonReal,
+                amount:amount,
+                status:1,
+                userId:parseInt(adminUtils.details.id)
+            }
+        });       
+
+        const appToUserTxnCreate=prisma.transaction.create({
+            data:{
+                accountType:UserAccountType.Admin,
+                transferType: MoneyTransferType.Remove,
+                type:TransactionType.NonReal,
+                amount:amount,
+                status:1,
+                userId:parseInt(adminUtils.details.id)
+            }
+        });       
+
+        const userToAppTxnCreate=prisma.transaction.create({
+            data:{
+                accountType:UserAccountType.User,
+                transferType: MoneyTransferType.Add,
+                type:TransactionType.NonReal,
+                amount:amount,
+                status:1,
+                userId:parseInt(userData.id)
+            }
+        });
+         
+        let txnsCreate;
+        try {
+            txnsCreate=await prisma.$transaction([
+                slotToAppTxnCreate,
+                appToSlotTxnCreate,
+                appToUserTxnCreate,
+                userToAppTxnCreate
+            ]);
+        } catch (error) {
+            console.log("Vault to Wallet Transfer : Transactions Create Block");
+            console.log(error);
+        }
+
+        if(!txnsCreate){
+            res.statusCode=vaultTransferToWalletStatus.serverError.code;
+            res.json({
+                message:vaultTransferToWalletStatus.serverError.message
+            });
+            return;
+        }
+
+        const slotToAppTxn=txnsCreate[0];
+        const appToSlotTxn=txnsCreate[1];
+        const appToUserTxn=txnsCreate[2];
+        const userToAppTxn=txnsCreate[3];
+
+        const slotAppRefCode=transactionUtils.generateTransactionRefId();
+        const slotToAppNonRealTxnCreate=prisma.transactionNonReal.create({
+            data:{
+                amount:amount,
+                fromAccountType:UserAccountType.Slot,
+                fromUserId:parseInt(userData.id),
+                txnCode:slotAppRefCode,
+                transferType:MoneyTransferType.Remove,
+                type:TransactionNonRealType.TransactionRequests,
+                withAccountType:UserAccountType.Admin,
+                withUserId:parseInt(adminUtils.details.id),
+                transactionId:slotToAppTxn.id,
+                status:1
+            }
+        });
+
+        const appToSlotNonRealTxnCreate=prisma.transactionNonReal.create({
+            data:{
+                amount:amount,
+                fromAccountType:UserAccountType.Admin,
+                fromUserId:parseInt(adminUtils.details.id),
+                txnCode:slotAppRefCode,
+                transferType:MoneyTransferType.Add,
+                type:TransactionNonRealType.TransactionRequests,
+                withAccountType:UserAccountType.Slot,
+                withUserId:parseInt(userData.id),
+                transactionId:appToSlotTxn.id,
+                status:1
+            }
+        });
+
+        const userAppRefCode=transactionUtils.generateTransactionRefId();
+        const appToUserNonRealTxnCreate=prisma.transactionNonReal.create({
+            data:{
+                amount:amount,
+                fromAccountType:UserAccountType.Admin,
+                fromUserId:parseInt(adminUtils.details.id),
+                txnCode:userAppRefCode,
+                transferType:MoneyTransferType.Remove,
+                type:TransactionNonRealType.TransactionRequests,
+                withAccountType:UserAccountType.User,
+                withUserId:parseInt(userData.id),
+                transactionId:appToUserTxn.id,
+                status:1
+            }
+        });
+
+        const userToAppNonRealTxnCreate=prisma.transactionNonReal.create({
+            data:{
+                amount:amount,
+                fromAccountType:UserAccountType.User,
+                fromUserId:parseInt(userData.id),
+                txnCode:userAppRefCode,
+                transferType:MoneyTransferType.Add,
+                type:TransactionNonRealType.TransactionRequests,
+                withAccountType:UserAccountType.Admin,
+                withUserId:parseInt(adminUtils.details.id),
+                transactionId:userToAppTxn.id,
+                status:1
+            }
+        });
+
+        let nonRealTxns;
+        try{
+            nonRealTxns=await prisma.$transaction([
+                slotToAppNonRealTxnCreate,
+                appToSlotNonRealTxnCreate,
+                appToUserNonRealTxnCreate,
+                userToAppNonRealTxnCreate,
+            ]);
+        }
+        catch(error){
+            console.log("Vault to Wallet Transfer : Non Real Transactions Create Block");
+            console.log(error);
+        }
+
+        if(!nonRealTxns){
+            // Deleting Txns
+            const delTxns=await prisma.transaction.deleteMany({
+                where:{
+                    OR:[
+                        {
+                            id:slotToAppTxn.id
+                        },
+                        {
+                            id:appToSlotTxn.id
+                        },
+                        {
+                            id:appToUserTxn.id
+                        },
+                        {
+                            id:userToAppTxn.id
+                        },
+                    ]
+                }
+            });
+
+            transactionSocketUtils.updateUser(userData.id, slotToAppTxn.id);
+            transactionSocketUtils.updateUser(userData.id, userToAppTxn.id);
+
+            res.statusCode=vaultTransferToWalletStatus.serverError.code;
+            res.json({
+                message:vaultTransferToWalletStatus.serverError.message
+            });
+            return;
+        }
+
+        res.statusCode=vaultTransferToWalletStatus.success.code;
+        res.json({
+            data:nonRealTxns,
+            message:vaultTransferToWalletStatus.success.message
+        });
+    } catch (error) {
+        console.log(error);
+        res.statusCode=vaultTransferToWalletStatus.serverError.code;
+        res.json({
+            message:vaultTransferToWalletStatus.serverError.message
+        });
+    }
+});
+
+const vaultTransferToWalletStatus={
+    success:{
+        code:200,
+        message:"Transfer Successful..."
+    },
+    serverError:{
+        code:500,
+        message:"Internal Server Error..."
+    }
+}
+
 router.post('/request', tokenUtils.verify, async(req, res)=>{
     const userData=req.tokenData;
     try {
         const txnReq=await prisma.transactionRequests.create({
             data:{
                 amount:parseFloat(req.body.amount),
-                fromAccountType:req.body.fromAccountType,
-                fromUserId:parseInt(userData.id),
+                requesterAccountType:req.body.requesterAccountType,
+                requesterUserId:parseInt(userData.id),
                 transferType:req.body.transferType,
-                withAccountType:req.body.withAccountType,
-                withUserId:parseInt(req.body.withUserId),
+                requestedFromAccountType:req.body.requestedFromAccountType,
+                requestedFromUserId:parseInt(req.body.requestedFromUserId),
                 note:req.body.note,
                 status:0
+            },
+            include:{
+                requesterUser:{
+                    select:userUtils.selectionWithSlot
+                },
+                requestedFromUser:{
+                    select:userUtils.selectionWithSlot
+                }
             }
         });
 
-        if(txnReq){
-            res.statusCode=txnReqPostStatus.success.code;
+        if(!txnReq){
+            res.statusCode=txnReqPostStatus.serverError.code;
             res.json({
-                message:txnReqPostStatus.success.message,
-                data:txnReq
+                message:txnReqPostStatus.serverError.message
             });
             return;
         }
-        
-        res.statusCode=txnReqPostStatus.serverError.code;
+
+        notificationUtils.sendNotification({
+            refId:txnReq.id,
+            recieverAccountType:txnReq.requestedFromAccountType,
+            recieverUserId:txnReq.requestedFromUserId,
+            refData:txnReq,
+            senderAccountType:txnReq.requesterAccountType,
+            senderUserId:txnReq.requestedFromUserId,
+            type:NotificationType.TransactionRequest,
+            status:0
+        });
+
+        try {
+            fcmUtils.sendTo({
+                body:txnReq.requesterUser.userDetails.firstName+" "+txnReq.requesterUser.userDetails.lastName,
+                data:txnReq,
+                imgUrl:(txnReq.requesterUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+txnReq.requesterUser.userDetails.picThumbnailUrl:null,
+                title:notificationUtils.titles.transactionRequest.forRequestedFrom(txnReq.amount),
+                token:txnReq.requestedFromUser.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notification block");
+            console.log(error);
+        }
+
+        res.statusCode=txnReqPostStatus.success.code;
         res.json({
-            message:txnReqPostStatus.serverError.message
+            message:txnReqPostStatus.success.message,
+            data:txnReq
         });
     } catch (error) {
+        console.log(error);
         res.statusCode=txnReqPostStatus.serverError.code;
         res.json({
             message:txnReqPostStatus.serverError.message
@@ -268,7 +526,7 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
         const txnReqData=await prisma.transactionRequests.findFirst({
             where:{
                 id:parseInt(req.body.requestId),
-                withUserId:parseInt(userData.id)
+                requestedFromUserId:parseInt(userData.id)
             }
         });
         if((!txnReqData)||(txnReqData.status!=0)){
@@ -279,16 +537,6 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             return;
         }
 
-        // Wallet balance of the acceptor must be greater than amount.
-        let walletBalance=await transactionUtils.walletBalance(userData.id);
-        if(walletBalance<txnReqData.amount){
-            res.statusCode=txnReqResponseStatus.lowBalance.code;
-            res.json({
-                message:txnReqResponseStatus.lowBalance.message
-            });
-            return;
-        }
-        
         if(req.body.response==2){
             // Reject response.
             const updateRequest=await prisma.transactionRequests.update({
@@ -297,9 +545,41 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 },
                 data:{
                     status:2
+                },
+                include:{
+                    requesterUser:{
+                        select:userUtils.selectionWithSlot
+                    },
+                    requestedFromUser:{
+                        select:userUtils.selectionWithSlot
+                    }
                 }
             });
             if(updateRequest){
+                notificationUtils.sendNotification({
+                    refId:updateRequest.id,
+                    recieverAccountType:updateRequest.requesterAccountType,
+                    recieverUserId:updateRequest.requesterUserId,
+                    refData:updateRequest,
+                    senderAccountType:updateRequest.requestedFromAccountType,
+                    senderUserId:updateRequest.requestedFromUserId,
+                    type:NotificationType.TransactionRequestResponse,
+                    status:0
+                });
+
+                try {
+                    fcmUtils.sendTo({
+                        body:updateRequest.requestedFromUser.userDetails.firstName+" "+updateRequest.requesterUser.userDetails.lastName,
+                        data:updateRequest,
+                        imgUrl:(updateRequest.requestedFromUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+updateRequest.requestedFromUser.userDetails.picThumbnailUrl:null,
+                        title:notificationUtils.titles.transactionRequestResponse.forRequester(updateRequest.amount),
+                        token:updateRequest.requesterUser.userNotification.token
+                    });
+                } catch (error) {
+                    console.log("FCM notification block");
+                    console.log(error);
+                }
+
                 res.statusCode=txnReqResponseStatus.success.code;
                 res.json({
                     message:txnReqResponseStatus.success.message,
@@ -315,28 +595,38 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             return;
         }
 
+        // Wallet balance of the acceptor must be greater than amount.
+        let walletBalance=await transactionUtils.walletBalance(userData.id);
+        if(walletBalance<txnReqData.amount){
+            res.statusCode=txnReqResponseStatus.lowBalance.code;
+            res.json({
+                message:txnReqResponseStatus.lowBalance.message
+            });
+            return;
+        }
+
         // TODO: work on security deposit and wallet balance.
 
         // The man who sent the request must get the money.
         // Thats why money transfer type remains same here.
         const fromTxnCreate=prisma.transaction.create({
             data:{
-                accountType:txnReqData.fromAccountType,
+                accountType:txnReqData.requesterAccountType,
                 transferType: txnReqData.transferType,
                 type:TransactionType.NonReal,
                 amount:txnReqData.amount,
                 status:1,
-                userId:txnReqData.fromUserId
+                userId:txnReqData.requesterUserId
             }
         });
         const withTxnCreate=prisma.transaction.create({
             data:{
-                accountType:txnReqData.withAccountType,
+                accountType:txnReqData.requestedFromAccountType,
                 transferType: (txnReqData.transferType==MoneyTransferType.Add) ? MoneyTransferType.Remove:MoneyTransferType.Add,
                 type:TransactionType.NonReal,
                 amount:txnReqData.amount,
                 status:1,
-                userId:txnReqData.withUserId
+                userId:txnReqData.requestedFromUserId
             }
         });
 
@@ -364,13 +654,13 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
         // From is the same of transaction request in this case.
         const fromTxnNonRealCreate=prisma.transactionNonReal.create({
             data:{
-                fromUserId:txnReqData.fromUserId,
-                fromAccountType: txnReqData.fromAccountType,
+                fromUserId:txnReqData.requesterUserId,
+                fromAccountType: txnReqData.requesterAccountType,
                 amount: txnReqData.amount,
-                refCode:txnRefCode,
+                txnCode:txnRefCode,
                 transferType: fromTxnData.transferType,
-                withAccountType:txnReqData.withAccountType,
-                withUserId:txnReqData.withUserId,
+                withAccountType:txnReqData.requestedFromAccountType,
+                withUserId:txnReqData.requestedFromUserId,
                 status:1,
                 type:TransactionNonRealType.TransactionRequests,
                 transactionId:fromTxnData.id,
@@ -379,13 +669,13 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
 
         const withTxnNonRealCreate=prisma.transactionNonReal.create({
             data:{
-                fromUserId:txnReqData.withUserId,
-                fromAccountType: txnReqData.withAccountType,
+                fromUserId:txnReqData.requestedFromUserId,
+                fromAccountType: txnReqData.requestedFromAccountType,
                 amount: txnReqData.amount,
-                refCode:txnRefCode,
+                txnCode:txnRefCode,
                 transferType: withTxnData.transferType,
-                withAccountType:txnReqData.fromAccountType,
-                withUserId:txnReqData.fromUserId,
+                withAccountType:txnReqData.requesterAccountType,
+                withUserId:txnReqData.requesterUserId,
                 status:1,
                 type:TransactionNonRealType.TransactionRequests,
                 transactionId:withTxnData.id,
@@ -421,14 +711,23 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
             });
             return;
         }
+        // TODO: Make changes according to new prisma scheme
         const updateRequest=await prisma.transactionRequests.update({
             where:{
                 id:txnReqData.id
             },
             data:{
                 status:1,
-                fromUserTransactionId:fromTxnData.id,
-                wihtUserTransactionId:withTxnData.id
+                requesterTransactionId:fromTxnData.id,
+                requestedFromTransactionId:withTxnData.id
+            },
+            include:{
+                requesterUser:{
+                    select:userUtils.selectionWithSlot
+                },
+                requestedFromUser:{
+                    select:userUtils.selectionWithSlot
+                }
             }
         });
         if(!updateRequest){
@@ -445,27 +744,40 @@ router.post('/respondRequest', tokenUtils.verify, async(req, res)=>{
                 }
             });
 
-            const delNonRealTxn=await prisma.transactionNonReal.deleteMany({
-                where:{
-                    OR:[
-                        {
-                            id:nonRealTxnCreate[0].id,
-                        },
-                        {
-                            id:nonRealTxnCreate[1].id,
-                        }
-                    ]
-                }
-            });
-            
-            // TODO: Update Transactions Sockets.
-            
             res.statusCode=txnReqResponseStatus.serverError.code;
             res.json({
                 message:txnReqResponseStatus.serverError.message
             });
             return;
         }
+
+        transactionSocketUtils.updateUser(fromTxnData.userId, fromTxnData.id);
+        transactionSocketUtils.updateUser(withTxnData.userId, withTxnData.id);
+
+        notificationUtils.sendNotification({
+            refId:updateRequest.id,
+            recieverAccountType:updateRequest.requesterAccountType,
+            recieverUserId:updateRequest.requesterUserId,
+            refData:updateRequest,
+            senderAccountType:updateRequest.requestedFromAccountType,
+            senderUserId:updateRequest.requestedFromUserId,
+            type:NotificationType.TransactionRequestResponse,
+            status:0
+        });
+
+        try {
+            fcmUtils.sendTo({
+                body:updateRequest.requestedFromUser.userDetails.firstName+" "+updateRequest.requesterUser.userDetails.lastName,
+                data:updateRequest,
+                imgUrl:(updateRequest.requestedFromUser.userDetails.picThumbnailUrl!=null) ? domain.domainName+updateRequest.requestedFromUser.userDetails.picThumbnailUrl:null,
+                title:notificationUtils.titles.transactionRequestResponse.forRequester(updateRequest.amount),
+                token:updateRequest.requesterUser.userNotification.token
+            });
+        } catch (error) {
+            console.log("FCM notification block");
+            console.log(error);
+        }
+
         res.statusCode=txnReqResponseStatus.success.code;
         res.json({
             message:txnReqResponseStatus.success.message,

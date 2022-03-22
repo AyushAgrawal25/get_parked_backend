@@ -107,7 +107,7 @@ router.post('/', tokenUtils.verify, upload.any(), async(req, res)=>{
                     return;
                 }
             }
-            imageThmbPathUrl=slotImageUtils.thumbnailPath+"/"+imgNewName;
+            imageThmbPathUrl=slotImageUtils.thumbnailRoute+"/"+imgNewName;
         }   
         else{
             // MainImage is named on slotId.+ current time.
@@ -137,7 +137,7 @@ router.post('/', tokenUtils.verify, upload.any(), async(req, res)=>{
             }
         }
         fs.unlinkSync(slotImagesTempPath+"/"+imgNewName);
-        imageOrgPathUrl=slotImageUtils.orgPath+"/"+imgNewName;
+        imageOrgPathUrl=slotImageUtils.orgRoute+"/"+imgNewName;
 
         const slotImageCreate=await prisma.slotImages.create({
             data:{
@@ -266,7 +266,7 @@ router.put('/', tokenUtils.verify, upload.any(), async(req, res)=>{
                     return;
                 }
             }
-            imageThmbPathUrl=slotImageUtils.thumbnailPath+"/"+imgNewName;
+            imageThmbPathUrl=slotImageUtils.thumbnailRoute+"/"+imgNewName;
         }   
         else{
             // MainImage is named on slotId.+ current time.
@@ -296,7 +296,7 @@ router.put('/', tokenUtils.verify, upload.any(), async(req, res)=>{
             }
         }
         fs.unlinkSync(slotImagesTempPath+"/"+imgNewName);
-        imageOrgPathUrl=slotImageUtils.orgPath+"/"+imgNewName;        
+        imageOrgPathUrl=slotImageUtils.orgRoute+"/"+imgNewName;        
 
         const slotImageUpdate=await prisma.slotImages.update({
             where:{

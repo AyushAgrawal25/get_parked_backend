@@ -14,3 +14,8 @@ Booking
 Parking 
 0 -> Parking completed
 1 -> parking going on
+
+Vehicle status code
+0 -> not in use and incase lord unchecked it.
+1 -> in use
+2 -> not fit in dimensions

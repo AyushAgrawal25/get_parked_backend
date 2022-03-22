@@ -5,6 +5,7 @@ const vehicleUtils = require('../../../routes/appRoutes/vehicles/vehicleUtils');
 const ioUtils = require('../ioUtils');
 
 const tokenUtils = require('../../tokenUtils/tokenUtils');
+const parkingRequestUtils = require('../../../routes/appRoutes/slots/parkingRequests/parkingRequestUtils');
 
 const prisma = new PrismaClient();
 
@@ -14,31 +15,10 @@ async function updateUser(userId, parkingRequestId){
             where:{
                 id:parseInt(parkingRequestId)
             },
-            include:{
-                booking:{
-                    include:{
-                        fromUserToSlotTransaction:{
-                            include:{
-                                transactionNonReal:true
-                            }
-                        },
-                        parking:{
-                            include:{
-                                slotRatingReview:true
-                            }
-                        }
-                    }
-                },
-                slot:{
-                    select:slotUtils.selection
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
+            include:parkingRequestUtils.userInclude
         });
 
-        console.log("user_"+userId);
+        // console.log("user_"+userId);
         ioUtils.emitter().to("user_"+userId).emit('user-parking-update', [parkingReqData]);
     } catch (error) {
         console.log(error);
@@ -51,33 +31,7 @@ async function updateParkingLord(userId, parkingRequestId){
             where:{
                 id:parseInt(parkingRequestId)
             },
-            include:{
-                booking:{
-                    include:{
-                        fromSlotToUserTransaction:{
-                            include:{
-                                transactionNonReal:true
-                            }
-                        },
-                        fromSlotToAppTransaction:{
-                            include:{
-                                transactionNonReal:true
-                            }
-                        },
-                        parking:{
-                            include:{
-                                slotRatingReview:true
-                            }
-                        }
-                    }
-                },
-                user:{
-                    select:userUtils.selection
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                }
-            }
+            include:parkingRequestUtils.slotInclude
         });
         console.log("user_"+userId);
         ioUtils.emitter().to("user_"+userId).emit('slot-parking-update', [parkingReqData]);

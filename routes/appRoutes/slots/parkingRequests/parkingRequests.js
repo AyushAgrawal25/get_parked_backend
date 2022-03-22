@@ -1,12 +1,16 @@
 require('dotenv').config();
 const express = require('express');
-const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType } = require('@prisma/client');
+const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType, NotificationType } = require('@prisma/client');
 
+const fcmUtils=require('./../../../../services/notifications/FCM-Notifications/fcmUtils');
 const slotUtils = require('../slotUtils');
 const userUtils = require('../../users/userUtils');
 const tokenUtils = require('../../../../services/tokenUtils/tokenUtils');
 const vehicleUtils = require('../../vehicles/vehicleUtils');
 const parkingSocketUtils=require('../../../../services/sockets/parkings/parkingSocketUtils');
+const notificationUtils=require('./../../notifications/notificationUtils');
+const domain = require('../../../../services/domain');
+const parkingRequestUtils = require('./parkingRequestUtils');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -14,6 +18,8 @@ const prisma = new PrismaClient();
 router.post('/send', tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
+        //TODO: Check the slot status before sending request.
+
         // Status 0 means the request is pending.
         const parkingReq = await prisma.slotParkingRequest.create({
             data: {
@@ -26,11 +32,11 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
             },
             include: {
                 slot: {
-                    include: {
-                        user: true,
-                    }
+                    select:slotUtils.selection
                 },
-                user: true
+                user:{
+                    select:userUtils.selection
+                }
             }
         });
 
@@ -38,8 +44,29 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
             //Update Sockets Using this Data.
             parkingSocketUtils.updateParkingLord(parkingReq.slot.userId, parkingReq.id);
             parkingSocketUtils.updateUser(parkingReq.userId, parkingReq.id);
+            
+            notificationUtils.sendNotification({
+                refId:parkingReq.id,
+                recieverAccountType:UserAccountType.Slot,
+                recieverUserId:parkingReq.slot.userId,
+                senderAccountType:UserAccountType.User,
+                senderUserId:parkingReq.userId,
+                type:NotificationType.ParkingRequest,
+                status:1
+            });
 
-            //TODO: Send notifications.
+            try {
+                fcmUtils.sendTo({
+                    body:parkingReq.user.userDetails.firstName+" "+parkingReq.user.userDetails.lastName,
+                    data:parkingReq,
+                    imgUrl:(parkingReq.user.userDetails.picThumbnailUrl!=null) ? domain.domainName+parkingReq.user.userDetails.picThumbnailUrl:undefined,
+                    title:notificationUtils.titles.parkingRequest.forSlot,
+                    token:parkingReq.slot.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notification block");
+                console.log(error);
+            }
 
             let respData = parkingReq;
             respData["slot"] = undefined;
@@ -68,7 +95,11 @@ router.post('/send', tokenUtils.verify, async (req, res) => {
 const parkingRequestStatus = {
     success: {
         code: 200,
-        message: "Parking sent to Lord Successfully..."
+        message: "Parking Request sent to Lord Successfully..."
+    },
+    inactiveSlot:{
+        code:422,
+        message:"Slot is inactive..."
     },
     serverError: {
         code: 500,
@@ -79,6 +110,8 @@ const parkingRequestStatus = {
 router.post("/respond", tokenUtils.verify, async (req, res) => {
     const userData = req.tokenData;
     try {
+        //TODO: Check the slot status before sending request.
+
         let reqResp = (req.body.response == 1) ? 1 : 2;
         const parkingReq=await prisma.slotParkingRequest.findUnique({
             where:{
@@ -125,13 +158,14 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
                 },
                 include: {
                     slot: {
-                        include: {
-                            user: true,
-                        }
+                        select:slotUtils.selection
                     },
-                    user: true
+                    user: {
+                        select:userUtils.selection
+                    }
                 }
             });
+
         } catch (error) {
             console.log("Parking Request Respond : Parking Request Update Status");
             console.log(error);
@@ -142,7 +176,29 @@ router.post("/respond", tokenUtils.verify, async (req, res) => {
             parkingSocketUtils.updateParkingLord(parkingReqUpdate.slot.userId, parkingReqUpdate.id);
             parkingSocketUtils.updateUser(parkingReqUpdate.userId, parkingReqUpdate.id);
 
-            //TODO: Send notifications.
+            notificationUtils.sendNotification({
+                recieverAccountType:UserAccountType.User,
+                recieverUserId:parkingReqUpdate.userId,
+                refData:parkingReqUpdate,
+                refId:parkingReqUpdate.id,
+                senderAccountType:UserAccountType.Slot,
+                senderUserId:parkingReqUpdate.slot.userId,
+                type:NotificationType.ParkingRequestResponse,
+                status:1
+            });
+
+            try {
+                fcmUtils.sendTo({
+                    title:notificationUtils.titles.parkingRequestResponse.forUser(req.body.response),
+                    body:parkingReqUpdate.slot.name,
+                    data:parkingReqUpdate,
+                    imgUrl:(parkingReqUpdate.slot.slotImages.length>0) ? domain.domainName+parkingReqUpdate.slot.slotImages[0].thumbnailUrl : undefined,
+                    token:parkingReqUpdate.user.userNotification.token
+                });
+            } catch (error) {
+                console.log("FCM notification block...");
+                console.log(error);
+            }
             
             let respData=parkingReqUpdate;
             respData["slot"]=undefined;
@@ -178,6 +234,10 @@ const parkingRequestResponseStatus = {
         code:400,
         message:"Parking Request cannot be accepted..."
     },
+    inactiveSlot:{
+        code:422,
+        message:"Slot is inactive..."
+    },
     expired: {
         code: 498,
         message: "Parking Request Expired..."
@@ -195,31 +255,7 @@ router.get('/forUser', tokenUtils.verify, async(req, res)=>{
             where:{
                 userId:parseInt(userdata.id)
             },
-            include:{
-                slot:{
-                    // select:{
-                    //     id:true
-                    // }
-                    
-                    select:slotUtils.selection
-                },
-                user:{
-                    select:userUtils.selection
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                },
-                booking:{
-                    include:{
-                        parking:true,
-                        fromUserToSlotTransaction:{
-                            include:{
-                                fromUserToSlot_booking:true
-                            }
-                        }
-                    }
-                }
-            }
+            include:parkingRequestUtils.userInclude,
         });
 
         if(parkingReqs){
@@ -265,24 +301,7 @@ router.get('/forSlot', tokenUtils.verify, async(req, res)=>{
             where:{
                 slotId:slot.id
             },
-            include:{
-                user:{
-                    select:userUtils.selection
-                },
-                vehicle:{
-                    select:vehicleUtils.selectionWithTypeData
-                },
-                booking:{
-                    include:{
-                        parking:true,
-                        fromSlotToUserTransaction:{
-                            include:{
-                                fromSlotToUser_booking:true
-                            }
-                        }
-                    }
-                }
-            }
+            include:parkingRequestUtils.slotInclude
         });
 
         if(parkingReqs){

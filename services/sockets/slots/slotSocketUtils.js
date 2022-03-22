@@ -30,6 +30,9 @@ async function onChangeCameraPosition(socket, data){
 
     let slotSelect=slotUtils.selection;
     slotSelect["vehicles"]={
+        where:{
+            status:1
+        },
         select:vehicleUtils.selectionWithTypeData
     };
 
@@ -55,6 +58,9 @@ async function onChangeCameraPosition(socket, data){
                     longitude:{
                         lte:maxLongitude
                     }
+                },
+                {
+                    status:1
                 }
             ]
         },
@@ -76,12 +82,12 @@ async function onChangeCameraPosition(socket, data){
             socket.join("slot_"+slot.id);
             socket.emit("slots-update", [slot]);
             // console.log("slot_"+slot.id);
+            resolve();
         });
 
         slotsUpdateFns.push(slotUpdate);
     });
 
-    await Promise.all(slotsUpdateFns);
     // console.log("Updated....");
 
     // slots.forEach((slot)=>{
@@ -95,6 +101,9 @@ async function updateSlotOnMap(slotId){
     try {
         let slotSelect=slotUtils.selection;
         slotSelect["vehicles"]={
+            where:{
+                status:1
+            },
             select:vehicleUtils.selectionWithTypeData
         };
         const slotData=await prisma.slot.findUnique({
@@ -108,6 +117,15 @@ async function updateSlotOnMap(slotId){
             return;
         }
 
+        if(slotData.status==0){
+            // Checking slot activation status.
+            return;
+        }
+
+        const slotAllotedSpace=await vehicleUtils.getAllotedArea(slotData.id);
+        const availableSpace=slotData.length*slotData.breadth-slotAllotedSpace;
+        slotData["availableSpace"]=availableSpace;
+        
         ioUtils.emitter().to("slot_"+slotId).emit("slots-update", [slotData]);
     } catch (error) {
         console.log("Update Slots on Map");

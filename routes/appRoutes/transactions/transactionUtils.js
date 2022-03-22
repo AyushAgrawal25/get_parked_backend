@@ -2,12 +2,17 @@ require('dotenv').config();
 
 const crypto=require('crypto');
 const { PrismaClient, TransactionType, MoneyTransferType, TransactionNonRealType, UserAccountType } = require('@prisma/client');
+const Razorpay= require('razorpay');
 
 const algorithm = 'aes-256-cbc';
 const cryptionIV = Buffer.alloc(16, 0);
 const cryptionKey= Buffer.from((process.env.ENCRYPTION_KEY).substring(0, 32), "utf-8");
 
 const prisma = new PrismaClient();
+const rzpInstance = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 function encryptData(data){
     try {
@@ -39,11 +44,22 @@ function getTransactionData(txCode){
     return JSON.parse(decrypedDataAsString);
 }
 
-function getTransactionCode(data){
+async function getTransactionCode({
+    userId, amount
+}){
+    let txnCodeorRecieptId=generateTransactionRefId();
+    const orderData=await createOrderInRazorpay({
+        amount:amount,
+        receiptId:txnCodeorRecieptId
+    });
+    // console.log(orderData);
     let txnData={
-        userId:data.userId,
-        code:generateTransactionRefId(), 
-        ref:null,
+        userId:userId,
+        orderId:orderData.id,
+        amount:amount,
+        signature:null,
+        paymentId:null,
+        code:txnCodeorRecieptId,
         status:0
     }
     // console.log(txnData);
@@ -53,8 +69,63 @@ function getTransactionCode(data){
     return encryptData(txnCode);
 }
 
+async function verifyRealTransaction({
+    orderId, paymentId, signature
+}){
+    if((!orderId)||(orderId==null)){
+        return false;
+    }
+    if((!paymentId)||(paymentId==null)){
+        return false;
+    }
+    if((!signature)||(signature==null)){
+        return false;
+    }
+
+    const generatedSignature=createPaymentSignature({
+        order_id:orderId,
+        razorpay_payment_id:paymentId
+    });
+
+    if(generatedSignature===signature){
+        return true;
+    }
+
+    return false;
+}
+
 function generateTransactionRefId(data){
     return "Txn_"+crypto.randomBytes(5).toString('hex')+Date.now();
+}
+
+async function createOrderInRazorpay({
+    receiptId, amount
+}){
+    try {
+        var options={
+            amount:parseInt(amount),
+            receipt:receiptId,
+            currency:"INR"
+        };
+
+        const order=await rzpInstance.orders.create(options);
+        if(order){
+            // console.log(order);
+            return order;
+        }
+        return null;
+    } catch (error) {
+        console.log(error);
+        return null;
+    }
+}
+
+const createPaymentSignature=function({
+    order_id, razorpay_payment_id, 
+}){
+    const hmac=crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(order_id + "|" + razorpay_payment_id);
+    return hmac.digest('hex');
 }
 
 async function walletBalance(userId){
@@ -118,5 +189,7 @@ module.exports={
     getTransactionCode,
     generateTransactionRefId,
     walletBalance,
-    vaultBalance
+    vaultBalance,
+    createPaymentSignature,
+    verifyRealTransaction
 }
