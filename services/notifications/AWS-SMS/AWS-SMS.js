@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const dotenv = require('dotenv');
-const awsConfig = require('./awsSmsConfig.json');
+const awsConfig = require('./../../../awsSmsConfig.json');
 const appDetails = require('./../../appDetails');
 
 dotenv.config();
