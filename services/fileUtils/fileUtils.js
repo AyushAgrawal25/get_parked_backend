@@ -7,7 +7,7 @@ async function initUploads(){
     try {
         const uploadCreate=fs.mkdirSync(path.resolve(uploadsPath));
     } catch (error) {
-        console.log(error);
+        // console.log(error);
     }
 
     imagesUtils.initImages();

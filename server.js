@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const parseArgs = require('minimist');
 
 const appRoute = require('./routes/appRoutes/appRoutes.js');
 const imagesRoute = require('./routes/images/imagesRoute');
@@ -14,8 +13,8 @@ const fileUtils = require('./services/fileUtils/fileUtils');
 
 const app = express();
 
-const args = parseArgs(process.argv.slice(2));
-const { name = 'default', port = '5000' } = args;
+const SERVER_NAME=process.env.SERVER_NAME||'Default';
+const PORT=process.env.PORT|| 5000;
 
 const server=require('http').createServer(app);
 
@@ -30,7 +29,7 @@ app.use(express.json({
 
 app.get("/", async (req, res) => {
     try {
-        res.json("Running... this is the name : " + name + ".");
+        res.json("Running... this is the name : " + SERVER_NAME + ".");
     }
     catch (excp) {
         console.log(excp);
@@ -41,9 +40,9 @@ app.get("/", async (req, res) => {
 app.use('/app', appRoute);
 app.use('/images', imagesRoute);
 
-server.listen(+port, () => {
+server.listen(+PORT, () => {
     console.log("Server is running...");
-    console.log(name + " " + port);
+    console.log(SERVER_NAME + " " + PORT);
     vehicleUtils.init();
     adminUtils.init();
     fileUtils.initUploads();

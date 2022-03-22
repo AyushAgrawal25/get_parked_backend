@@ -8,7 +8,7 @@ async function initImages(){
     try {
         const imagesCreate=fs.mkdirSync(path.resolve(imagesPath));
     } catch (error) {
-        console.log(error);
+        // console.log(error);
     }
 
     slotImageUtils.initSlotImages();

@@ -6,7 +6,7 @@ async function initProfilePics(){
     try {
         const profilePicsCreate=fs.mkdirSync(path.resolve(profilePicsPath));
     } catch (error) {
-        console.log(error);
+        // console.log(error);
     }
 
     initProfilePicsOrg();
@@ -19,7 +19,7 @@ async function initProfilePicsOrg(){
     try {
         const profilePicsOrgCreate=fs.mkdirSync(path.resolve(profilePicsOrgPath));
     } catch (error) {
-        console.log(error);
+        // console.log(error);
     }
 }
 
@@ -27,8 +27,9 @@ const profilePicsThmbPath="public/uploads/images/profilePics/thumbnails";
 async function initProfilePicsThmb(){
     try {
         const profilePicsThmbCreate=fs.mkdirSync(path.resolve(profilePicsThmbPath));
+        console.log(profilePicsThmbCreate)
     } catch (error) {
-        console.log(error);
+        // console.log(error);
     }
 }
 
@@ -37,7 +38,7 @@ async function initProfilePicsTemp(){
     try {
         const profilePicsTempCreate=fs.mkdirSync(path.resolve(profilePicsTempPath));
     } catch (error) {
-        console.log(error);
+        // console.log(error);
     }
 }
 
